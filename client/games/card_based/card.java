@@ -1,4 +1,6 @@
-public class Card {
+package games.card_based;
+
+public class card {
     
     public enum Suit {HEARTS, DIAMOND, CLUBS, SPADES}
 
@@ -7,7 +9,7 @@ public class Card {
     private final Suit suit;
     private final Rank rank;
 
-    public Card(Suit suit, Rank rank) {
+    public card(Suit suit, Rank rank) {
         this.suit = suit;
         this.rank = rank;
     }
