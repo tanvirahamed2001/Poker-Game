@@ -1,5 +1,5 @@
-//Accepts connections from clients and passes it over to a table
-//Theoretically this could be scrapped and Main could be this, but I'm not sure if we need to do anything else in main yet
+//Accepts connections from clients and passes it over to the table manager to find or create a table
+//should only have one of these running at a time
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;

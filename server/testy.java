@@ -1,14 +1,28 @@
 //test class used for testing things outside of a thread
 
+import java.util.ArrayList;
 import java.util.HashSet;
 
-public class testy  {
+public class testy implements Runnable {
 	public static void main(String[] args){
-		HashSet<Integer> testy = new HashSet<Integer>();
-		testy.add(1);
-		testy.add(2);
-		Integer[] lol = testy.toArray(new Integer[]{});
-		System.out.println(lol[0]);
-		System.out.println(lol[1]);
+		testy thing = new testy();
+		Thread thread = new Thread(thing);
+		thread.start();
+	}
+
+	@Override
+	public void run() {
+		try {
+			ArrayList<Object> monitor = new ArrayList<Object>();
+			monitor.add(new Object());
+			Thread thr = new Thread(new testy2(monitor));
+			thr.start();
+			synchronized(monitor.get(0)) {
+				monitor.get(0).wait();
+				System.out.println("I continued!");
+			}
+		} catch (InterruptedException e) {
+			System.out.println("I was interrupted!");
+		}
 	}
 }

@@ -27,7 +27,6 @@ public class ServerTableManager implements Runnable {
 		else if(game == 0) {
 			game = ServerMain.addNewGame();
 			ServerMain.waitforGame(game, conn);
-			
 		}
 		else {
 			//freak out cause there's an error, I dunno, TODO
@@ -43,7 +42,7 @@ public class ServerTableManager implements Runnable {
 			}
 			message += "Please input the game number you would like to join, or type 'new' to create a new game\nDone\n"; //use Done to signal to the client that it's done sending stuff
 			out.write(message);
-			response = in.readLine();//should be a number
+			response = in.readLine();//should be a number or "new"
 			try {
 				int table = Integer.parseInt(response);
 				return table;
@@ -52,7 +51,7 @@ public class ServerTableManager implements Runnable {
 					return 0;
 				}
 				else {
-					out.write("Invalid Input!\nDone\n");
+					out.write("Invalid Input! Please Try Again\nDone\n");
 					return getInput();
 				}	
 			}
@@ -60,6 +59,6 @@ public class ServerTableManager implements Runnable {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		return -1;//shouldn't reach here unless something went wrong
+		return -1;//shouldn't reach here unless something went wrong, probably an IOException
 	}
 }
