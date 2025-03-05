@@ -14,11 +14,11 @@ public class Deck {
             }
         }
 
-        shuffle()
+        shuffle();
     }
 
     public void shuffle() {
-        Collections.shuffle(card);
+        Collections.shuffle(cards);
     }
 
     public Card deal_card() {
