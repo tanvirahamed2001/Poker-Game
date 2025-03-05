@@ -1,3 +1,7 @@
+// Basic information for a "Player"
+// Might need to expand upon in the future
+// Will work for what we need currently
+
 package games;
 
 public class Player {
