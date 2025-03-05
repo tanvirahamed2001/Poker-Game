@@ -4,4 +4,8 @@ public class ClientMain {
 
     //TODO: Setup connection
 
+    public static void main(String[] args) {
+
+    }
+
 }
