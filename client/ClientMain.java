@@ -28,6 +28,11 @@ public class ClientMain {
         double depositAmount = scanner.nextDouble();
         scanner.nextLine(); // Consume newline
         
+        //player to house data
+        Player player = new Player(playerName, depositAmount);
+
+        //TODO: compress player to send over network
+
         // Step 3: Attempt to connect to the server
         if (connectToServer()) {
             System.out.println("Connected to the game server!");
@@ -53,6 +58,7 @@ public class ClientMain {
     }
     
     private static void sendMessage(String message) {
+        //TODO: Finish sendMessage, actually send to the server
         if (out != null) {
             out.println(message);
         }
