@@ -7,9 +7,9 @@ package games;
 public class Player {
 
     private String name;
-    private int funds;
+    private double funds;
 
-    public Player(String name, int funds) {
+    public Player(String name, double funds) {
         this.name = name;
         this.funds = funds;
     }
@@ -22,11 +22,11 @@ public class Player {
         return this.funds;
     }
 
-    public void deposit_funds(int amount) {
+    public void deposit_funds(double amount) {
         this.funds += amount;
     }
 
-    public int bet_amount(int bet) {
+    public int bet_amount(double bet) {
         if(bet <= this.funds && bet != 0) {
             this.funds = bet;
             return bet;
