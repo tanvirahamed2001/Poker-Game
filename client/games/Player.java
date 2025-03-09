@@ -1,9 +1,4 @@
-// Basic information for a "Player"
-// Might need to expand upon in the future
-// Will work for what we need currently
-
 package games;
-
 import java.io.Serializable;
 
 public class Player implements Serializable {
