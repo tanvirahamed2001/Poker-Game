@@ -4,7 +4,9 @@
 
 package games;
 
-public class Player {
+import java.io.Serializable;
+
+public class Player implements Serializable {
 
     private String name;
     private double funds;
@@ -18,7 +20,7 @@ public class Player {
         return this.name;
     }
 
-    public int view_funds() {
+    public double view_funds() {
         return this.funds;
     }
 
@@ -26,7 +28,7 @@ public class Player {
         this.funds += amount;
     }
 
-    public int bet_amount(double bet) {
+    public double bet_amount(double bet) {
         if(bet <= this.funds && bet != 0) {
             this.funds = bet;
             return bet;
