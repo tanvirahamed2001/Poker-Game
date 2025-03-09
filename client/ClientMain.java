@@ -42,8 +42,10 @@ public class ClientMain {
             // Print connection completed message for the client
             System.out.println(String.format("Connected to the game server with name %s and funds #d!", player.get_name(), player.view_funds()));
 
-            // Send player data
+            // Send player data to server
             sendPlayerData();
+
+            // TODO: Tim -> interact with the table manager to create / join a table. Start a game of poker once William is finished the game logic on the server side. Implement any missing classes / logic.
 
             // Step 5: Choose or create a game
             handleGameSelection(scanner);
@@ -83,18 +85,32 @@ public class ClientMain {
     }
 
     /**
-     * Gets updated player model from the server
+     * Get generic object from the server. 
+     * Can be Players at this point.
+     * Update as we expand project.
+     * TODO: Thread this as a possible listener
      */
-    private static void getPlayerData() {
+    private static void getObjectData() {
         try {
-            player = (Player) obj_in_stream.readObject();
-            System.out.println("Updated player information!]\n");
+            Object obj = obj_in_stream.readObject();
+            if(obj instanceof Player) {
+                updatePlayer((Player)obj);
+            }
         } catch(IOException e) {
             //TODO: combine or keep seperate with generic expections
             e.printStackTrace();
         } catch(Exception e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Update the player with the new server variation
+     * @param updatedPlayer
+     */
+    private static void updatePlayer(Player updatedPlayer) {
+        player = updatedPlayer;
+        System.out.println("Updated player information!]\n");
     }
 
     // Old implementation for when we used double
