@@ -7,7 +7,11 @@
 import java.io.*;
 import java.net.*;
 import java.util.Scanner;
+
+import javax.imageio.IIOException;
+
 import games.Player;
+import games.card_based.card;
 
 public class ClientMain {
     private static final String SERVER_ADDRESS = "your.server.ip"; // Place blocker where we will put IP address UofC systems to keep it consistent
@@ -15,28 +19,31 @@ public class ClientMain {
     private static Socket socket;
     private static PrintWriter out;
     private static BufferedReader in;
-    private static ObjectOutputStream obj_stream;
+    private static ObjectOutputStream obj_out_stream;
+    private static ObjectInputStream obj_in_stream;
+    private static Player player;
 
     public static void main(String[] args) {
+        // Create a scanner for getting player input
         Scanner scanner = new Scanner(System.in);
+
+        // Display welcome message for the client
         System.out.println("Welcome to Poker Game!");
 
-        // Step 1: Ask for player name
-        System.out.print("Enter your name: ");
-        String playerName = scanner.nextLine();
-        
-        // Step 2: Handle deposit logic (optional, discuss server-side handling)
-        System.out.print("Enter initial deposit amount: $");
-        double depositAmount = scanner.nextDouble();
-        scanner.nextLine(); // Consume newline
-        
-        // Step 3: Attempt to connect to the server
-        if (connectToServer()) {
-            System.out.println("Connected to the game server!");
-            sendMessage(playerName + " has joined with $" + depositAmount);
+        // Consume the newLine
+        scanner.nextLine(); 
 
-            // Step 4: Start listener thread
-            startListenerThread();
+        // Create the player
+        player = getPlayerInfo(scanner);
+        
+        // Begin connection to server
+        if (connectToServer()) {
+
+            // Print connection completed message for the client
+            System.out.println(String.format("Connected to the game server with name %s and funds #d!", player.get_name(), player.view_funds()));
+
+            // Send player data
+            sendPlayerData();
 
             // Step 5: Choose or create a game
             handleGameSelection(scanner);
@@ -48,6 +55,49 @@ public class ClientMain {
         closeConnection();
     }
 
+    /**
+     * Gets the current players information
+     * @param scanner
+     * @return Player
+     */
+    private static Player getPlayerInfo(Scanner scanner) {
+        System.out.print("Enter your name: ");
+        String playerName = scanner.nextLine();
+
+        System.out.print("Enter initial deposit amount: $");
+        int depositAmount = scanner.nextInt();
+        
+        return new Player(playerName, depositAmount);
+    }
+
+    /**
+     * Sends the current state of the player to the server
+     */
+    private static void sendPlayerData() {
+        try {
+            obj_out_stream.writeObject(player);
+            obj_out_stream.flush();
+        } catch(IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Gets updated player model from the server
+     */
+    private static void getPlayerData() {
+        try {
+            player = (Player) obj_in_stream.readObject();
+            System.out.println("Updated player information!]\n");
+        } catch(IOException e) {
+            //TODO: combine or keep seperate with generic expections
+            e.printStackTrace();
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Old implementation for when we used double
     private static double getValidDepositAmount(Scanner scanner) {
         double amount;
         while (true) {
@@ -72,7 +122,8 @@ public class ClientMain {
         try {
             socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
             out = new PrintWriter(socket.getOutputStream(), true);
-            obj_stream = new ObjectOutputStream(socket.getOutputStream());
+            obj_out_stream = new ObjectOutputStream(socket.getOutputStream());
+            obj_in_stream = new ObjectInputStream(socket.getInputStream());
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             return true;
         } catch (IOException e) {

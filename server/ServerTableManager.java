@@ -3,22 +3,31 @@ import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
+import games.Player;
 
 public class ServerTableManager implements Runnable {
 	Socket conn;
 	BufferedWriter out;
 	BufferedReader in;
+	ObjectInputStream obj_in;
+	ObjectOutputStream obj_out;
 	static HashMap<Integer, ArrayList<Socket>> games = ServerMain.getGames();
+	ArrayList<Player> player_list;
+
 	public ServerTableManager(Socket newconn) {
 		this.conn = newconn;
+		this.player_list = new ArrayList<>();
 		try {
 			out = new BufferedWriter(new OutputStreamWriter(conn.getOutputStream()));
 			in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+			obj_in = new ObjectInputStream(conn.getInputStream());
+			obj_out = new ObjectOutputStream(conn.getOutputStream());
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
+
 	public void run() {
 		int game = getInput();
 		if(game > 0) {
