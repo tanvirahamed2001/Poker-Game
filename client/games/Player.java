@@ -8,7 +8,7 @@ public class Player implements Serializable {
 
     private String name;
     private int funds;
-    private List<Card> hand;
+    private ArrayList<Card> hand;
 
     /**
      * Creates a new Player object from client information.
@@ -50,8 +50,14 @@ public class Player implements Serializable {
      * Shows all the current cards to who ever. Not very safe. Fix later?
      * @return
      */
-    public List<Card> show_all_cards() {
+    public ArrayList<Card> show_all_cards() {
         return hand;
+    }
+    /**
+     * remove all cards from the players' hand
+     */
+    public void clear_hand() {
+    	hand.clear();
     }
 
     /**
