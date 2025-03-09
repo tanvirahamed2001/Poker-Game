@@ -23,6 +23,9 @@ after all the turns are done, calculate who has the best hand and give them the 
 
 import java.net.Socket;
 import java.util.ArrayList;
+import games.Player;
+import games.card_based.Card;
+import games.card_based.Deck;
 
 public class ServerTable implements Runnable {
 	ArrayList<Socket> playerlist;
@@ -30,6 +33,14 @@ public class ServerTable implements Runnable {
 		this.playerlist = plist;
 	}
 	public void run() {
-		System.out.println("I got added!");
+		boolean activePlayers[] = new boolean[playerlist.size()];
+		int funds[] = new int[playerlist.size()];
+		Deck deck = new Deck();
+		Player players[] = new Player[playerlist.size()];
+		for(int i = 0; i < activePlayers.length; i++) {
+			activePlayers[i] = true; //all players are active at the start of the game
+			players[i].deposit_funds(1000); //arbitrary number
+		}
+		
 	}
 }
