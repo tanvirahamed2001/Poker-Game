@@ -30,6 +30,6 @@ public class ServerTable implements Runnable {
 		this.playerlist = plist;
 	}
 	public void run() {
-		
+		System.out.println("I got added!");
 	}
 }

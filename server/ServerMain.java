@@ -38,6 +38,6 @@ public class ServerMain  {
 	public static synchronized int addNewGame() {
 		matching_games.put(id, new ArrayList<Socket>());
 		id++; //if this was IRL this would be a potential risk due to integer overflows
-		return id;
+		return id-1;
 	}
 }

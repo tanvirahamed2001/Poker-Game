@@ -5,8 +5,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import javax.net.ServerSocketFactory;
 public class ServerConnector implements Runnable {
 	public void run() {
 		ExecutorService pool = Executors.newCachedThreadPool();

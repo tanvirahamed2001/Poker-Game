@@ -21,7 +21,7 @@ public class ServerTableManager implements Runnable {
 	}
 	public void run() {
 		int game = getInput();
-		if(game < 0) {
+		if(game > 0) {
 			ServerMain.waitforGame(game, conn);
 		}
 		else if(game == 0) {
@@ -42,6 +42,7 @@ public class ServerTableManager implements Runnable {
 			}
 			message += "Please input the game number you would like to join, or type 'new' to create a new game\nDone\n"; //use Done to signal to the client that it's done sending stuff
 			out.write(message);
+			out.flush();
 			response = in.readLine();//should be a number or "new"
 			try {
 				int table = Integer.parseInt(response);
