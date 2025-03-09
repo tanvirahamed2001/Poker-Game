@@ -10,7 +10,7 @@ import java.util.Scanner;
 import games.Player;
 
 public class ClientMain {
-    private static final String SERVER_ADDRESS = "127.0.0.1"; // Change to actual server IP
+    private static final String SERVER_ADDRESS = "your.server.ip"; // Place blocker where we will put IP address UofC systems to keep it consistent
     private static final int SERVER_PORT = 6834; // Match server port
     private static Socket socket;
     private static PrintWriter out;
@@ -20,7 +20,7 @@ public class ClientMain {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         System.out.println("Welcome to Poker Game!");
-        
+
         // Step 1: Ask for player name
         System.out.print("Enter your name: ");
         String playerName = scanner.nextLine();
@@ -30,21 +30,37 @@ public class ClientMain {
         double depositAmount = scanner.nextDouble();
         scanner.nextLine(); // Consume newline
         
-        //player to house data
-        Player player = new Player(playerName, depositAmount);
-
         // Step 3: Attempt to connect to the server
         if (connectToServer()) {
             System.out.println("Connected to the game server!");
-                        
-            // Step 4: Send player information, implement when server ready
-            // sendPlayer(player);
-    
-            // Step 5: Interact with server
+            sendMessage(playerName + " has joined with $" + depositAmount);
+
+            // Step 4: Start listener thread
+            startListenerThread();
+
+            // Step 5: Choose or create a game
             handleGameSelection(scanner);
         } else {
             System.out.println("Failed to connect to the server. Please try again later.");
         }
+
+        // Close resources when done
+        closeConnection();
+    }
+
+    private static double getValidDepositAmount(Scanner scanner) {
+        double amount;
+        while (true) {
+            System.out.print("Enter initial deposit amount: $");
+            try {
+                amount = Double.parseDouble(scanner.nextLine().trim());
+                if (amount >= 0) break;
+                System.out.println("Deposit amount must be non-negative.");
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid amount. Please enter a valid number.");
+            }
+        }
+        return amount;
     }
 
     /**
@@ -64,50 +80,55 @@ public class ClientMain {
             return false;
         }
     }
-    
-    /**
-     * Sends the "Player" object the client creates to the connected server
-     * @param player
-     */
-    private static void sendPlayer(Player player) {
-        try {
-            obj_stream.writeObject(player);
-        } catch(IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Sends messages to the server
-     * Maybe integrate with sendPlayer at some point
-     * @param message
-     */
     private static void sendMessage(String message) {
         //TODO: Finish sendMessage, actually send to the server
         if (out != null) {
             out.println(message);
         }
     }
-    
-    /**
-     * Handles game selection logic.
-     * Interacts with the connected server via commands
-     * "New" for creating a new table to join
-     * Integer "N" for a table number to join
-     * @param scanner
-     */
+
+    private static void startListenerThread() {
+        Thread listener = new Thread(() -> {
+            try {
+                String serverMessage;
+                while ((serverMessage = in.readLine()) != null) {
+                    System.out.println("Server: " + serverMessage);
+                }
+            } catch (IOException e) {
+                System.err.println("Connection lost: " + e.getMessage());
+            }
+        });
+        listener.setDaemon(true);
+        listener.start();
+    }
+
     private static void handleGameSelection(Scanner scanner) {
+        System.out.println("Waiting for available games...");
         try {
             String serverResponse;
             while ((serverResponse = in.readLine()) != null) {
                 if (serverResponse.equals("Done")) break;
                 System.out.println(serverResponse);
             }
+
+            // Get user input for game selection
             System.out.print("Enter game number or type 'new': ");
-            String choice = scanner.nextLine();
+            String choice = scanner.nextLine().trim();
             sendMessage(choice);
+
         } catch (IOException e) {
             System.err.println("Error receiving game selection: " + e.getMessage());
+        }
+    }
+
+    private static void closeConnection() {
+        try {
+            if (socket != null) socket.close();
+            if (out != null) out.close();
+            if (in != null) in.close();
+            System.out.println("Disconnected from server.");
+        } catch (IOException e) {
+            System.err.println("Error closing connection: " + e.getMessage());
         }
     }
 }
