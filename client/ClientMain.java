@@ -10,7 +10,7 @@ import java.util.Scanner;
 import shared.Player;
 
 public class ClientMain {
-    private static final String SERVER_ADDRESS = "your.server.ip"; // Place blocker where we will put IP address UofC systems to keep it consistent
+    private static final String SERVER_ADDRESS = "localhost"; // Place blocker where we will put IP address UofC systems to keep it consistent
     private static final int SERVER_PORT = 6834; // Match server port
     private static Socket socket;
     private static PrintWriter out;
@@ -24,10 +24,10 @@ public class ClientMain {
         Scanner scanner = new Scanner(System.in);
 
         // Display welcome message for the client
-        System.out.println("Welcome to Poker Game!");
+        System.out.println("Welcome to Poker Game!\n");
 
         // Consume the newLine
-        scanner.nextLine(); 
+        //scanner.nextLine(); 
 
         // Create the player
         player = getPlayerInfo(scanner);
@@ -36,7 +36,7 @@ public class ClientMain {
         if (connectToServer()) {
 
             // Print connection completed message for the client
-            System.out.println(String.format("Connected to the game server with name %s and funds #d!", player.get_name(), player.view_funds()));
+            System.out.println(String.format("Connected to the game server with name %s and funds %d!", player.get_name(), player.view_funds()));
 
             // Send player data to server
             sendPlayerData();
