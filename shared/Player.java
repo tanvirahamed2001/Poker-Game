@@ -2,7 +2,7 @@ package shared;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import games.card_based.Card;
+import shared.card_based.Card;
 
 public class Player implements Serializable {
 

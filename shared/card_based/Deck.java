@@ -1,4 +1,5 @@
-package games.card_based;
+package shared.card_based;
+
 import java.util.*;
 
 public class Deck {
