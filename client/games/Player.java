@@ -40,10 +40,12 @@ public class Player implements Serializable {
     /**
      * Player side for viewing cards. Prints the toString()
      */
-    private void view_cards() {
+    public String view_cards() {
+    	String string = "";
         for(Card c : hand) {
-            c.toString();
+            string += c.toString() + " ";
         }
+        return string;
     }
 
     /**
