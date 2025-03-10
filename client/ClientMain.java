@@ -48,7 +48,6 @@ public class ClientMain {
         } else {
             System.out.println("Failed to connect to the server. Please try again later.");
         }
-
         // Close resources when done
         closeConnection();
     }
@@ -61,9 +60,18 @@ public class ClientMain {
     private static Player getPlayerInfo(Scanner scanner) {
         System.out.print("Enter your name: ");
         String playerName = scanner.nextLine();
-
-        System.out.print("Enter initial deposit amount: $");
-        int depositAmount = scanner.nextInt();
+        int depositAmount;
+        while(true) {
+        	System.out.print("Enter initial deposit amount: $");
+        	try {
+        		depositAmount = Integer.parseInt(scanner.nextLine());
+        		break;
+        	}catch(NumberFormatException e) {
+        		System.out.println("Invalid input! Please try again!");
+        	}
+            
+        }
+        
         
         return new Player(playerName, depositAmount);
     }
