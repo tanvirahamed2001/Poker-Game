@@ -519,17 +519,37 @@ public class ServerTable implements Runnable {
 				sendAllPlayers("Player " + currentplayer + " has called!\n");
 				incrementplayer();
 			}
+			else if(response.equalsIgnoreCase("funds")) {
+				outlist.get(currentplayer).write("You currently have $" + players[currentplayer].view_funds() + "\n");
+			}
+			else if(response.equalsIgnoreCase("cards")) {
+				outlist.get(currentplayer).write("Your cards are: " + players[currentplayer].view_cards() + "\nThe cards on the table are: ");
+				for(int i = 0; i < tablecards.size(); i++) {
+					outlist.get(currentplayer).write(tablecards.get(i).toString() + " ");
+				}
+				outlist.get(currentplayer).write("\n");
+			}
+			else {
+				outlist.get(currentplayer).write("Invalid command! Please Try Again!\n");
+				getPlayerInput();
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		
 	}
+	/**
+	 * increments the current player, 'flips' it back to 0 when needed
+	 */
 	private void incrementplayer() {
 		currentplayer++;
 		if(currentplayer == playerlist.size()) {
 			currentplayer = 0;
 		}
 	}
+	/**
+	 * tries to send a message to all players that exist
+	 */
 	private void sendAllPlayers(String string) {
 		for(int i = 0; i < playerlist.size(); i++) {
 			try {
