@@ -11,17 +11,16 @@ public class ServerTableManager implements Runnable {
 	BufferedReader in;
 	ObjectInputStream obj_in;
 	ObjectOutputStream obj_out;
-	static HashMap<Integer, ArrayList<Socket>> games = ServerMain.getGames();
-	ArrayList<Player> player_list;
+	static HashMap<Integer, ArrayList<Player>> games = ServerMain.getGames();
+	Player player;
 
-	public ServerTableManager(Socket newconn) {
+	public ServerTableManager(Socket newconn, Player player) {
 		this.conn = newconn;
-		this.player_list = new ArrayList<>();
+		this.player = player;
+		this.player.socket = newconn;
 		try {
 			out = new BufferedWriter(new OutputStreamWriter(conn.getOutputStream()));
 			in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-			obj_in = new ObjectInputStream(conn.getInputStream());
-			obj_out = new ObjectOutputStream(conn.getOutputStream());
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -31,11 +30,11 @@ public class ServerTableManager implements Runnable {
 	public void run() {
 		int game = getInput();
 		if(game > 0) {
-			ServerMain.waitforGame(game, conn);
+			ServerMain.waitforGame(game, player);
 		}
 		else if(game == 0) {
 			game = ServerMain.addNewGame();
-			ServerMain.waitforGame(game, conn);
+			ServerMain.waitforGame(game, player);
 		}
 		else {
 			//freak out cause there's an error, I dunno, TODO

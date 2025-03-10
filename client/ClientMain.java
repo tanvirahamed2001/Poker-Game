@@ -73,7 +73,7 @@ public class ClientMain {
         }
         
         
-        return new Player(playerName, depositAmount);
+        return new Player(playerName, depositAmount, null);
     }
 
     /**
@@ -143,7 +143,6 @@ public class ClientMain {
             socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
             out = new PrintWriter(socket.getOutputStream(), true);
             obj_out_stream = new ObjectOutputStream(socket.getOutputStream());
-            obj_in_stream = new ObjectInputStream(socket.getInputStream());
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             return true;
         } catch (IOException e) {

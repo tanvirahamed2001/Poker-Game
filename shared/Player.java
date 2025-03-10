@@ -1,6 +1,7 @@
 package shared;
 
 import java.io.Serializable;
+import java.net.Socket;
 import java.util.ArrayList;
 import shared.card_based.Card;
 
@@ -9,16 +10,18 @@ public class Player implements Serializable {
     private String name;
     private int funds;
     private ArrayList<Card> hand;
+    public Socket socket;
 
     /**
      * Creates a new Player object from client information.
      * @param name
      * @param funds
      */
-    public Player(String name, int funds) {
+    public Player(String name, int funds, Socket socket) {
         this.name = name;
         this.funds = funds;
         hand = new ArrayList<>();
+        this.socket = socket;
     }
 
     /**

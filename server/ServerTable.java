@@ -33,23 +33,26 @@ import shared.card_based.Card.*;
 import shared.card_based.Poker_Hands.winners;
 
 public class ServerTable implements Runnable {
-	ArrayList<Socket> playerlist;
+	ArrayList<Socket> psocket;
 	ArrayList<BufferedWriter> outlist;
 	ArrayList<BufferedReader> inlist;
 	ArrayList<Card> tablecards;
 	int currentbet, lastactive, currentplayer, pot, currentturn;
-	Player players[];
+	ArrayList<Player> players;
 	boolean activePlayers[];
 	boolean finalturn;
 	
-	public ServerTable(ArrayList<Socket> plist) {
-		this.playerlist = plist;
+	public ServerTable(ArrayList<Player> plist) {
+		this.players = plist;
 		outlist = new ArrayList<>();
 		inlist = new ArrayList<>();
-		for(int i = 0; i < playerlist.size(); i++) {
+		for(int i = 0; i < players.size(); i++) {
+			psocket.add(players.get(i).socket);
+		}
+		for(int i = 0; i < psocket.size(); i++) {
 			try {
-				outlist.add(new BufferedWriter(new OutputStreamWriter(playerlist.get(i).getOutputStream())));
-				inlist.add(new BufferedReader(new InputStreamReader(playerlist.get(i).getInputStream())));
+				outlist.add(new BufferedWriter(new OutputStreamWriter(psocket.get(i).getOutputStream())));
+				inlist.add(new BufferedReader(new InputStreamReader(psocket.get(i).getInputStream())));
 			} catch(IOException e) {
 				e.printStackTrace();
 			}
@@ -57,20 +60,18 @@ public class ServerTable implements Runnable {
 	}
 	public void run() {
 		finalturn = false;
-		activePlayers = new boolean[playerlist.size()];
+		activePlayers = new boolean[psocket.size()];
 		pot = 0;
 		currentturn = 1;
 		Deck deck = new Deck();
-		players = new Player[playerlist.size()];
 		lastactive = 0;
 		currentplayer = 0;
 		currentbet = 0;
 		tablecards = new ArrayList<Card>();
 		for(int i = 0; i < activePlayers.length; i++) {
 			activePlayers[i] = true; //all players are active at the start of the game
-			players[i].deposit_funds(1000);
-			players[i].new_card(deck.deal_card());
-			players[i].new_card(deck.deal_card());
+			players.get(i).new_card(deck.deal_card());
+			players.get(i).new_card(deck.deal_card());
 		}
 		
 		//turns: 0: pre-betting, 1: flop, 2: turn, 3: river, 4: game over
@@ -108,7 +109,7 @@ public class ServerTable implements Runnable {
 					if(winners.size() == 1) {
 						int winnum = winners.get(0).playernumber;
 						sendAllPlayers("Player " + winnum + "has won the round! They earn $" + pot + "!\n");
-						players[winnum].deposit_funds(pot);
+						players.get(winnum).deposit_funds(pot);
 					}
 					else {
 						sendAllPlayers("Players ");
@@ -121,15 +122,15 @@ public class ServerTable implements Runnable {
 						sendAllPlayers("Have tied! The pot will be split among the winners!\n");
 						pot /= winners.size();
 						for(int i = 0; i < winners.size(); i++) {
-							players[winners.get(i).playernumber].deposit_funds(pot);
+							players.get(winners.get(i).playernumber).deposit_funds(pot);
 						}
 					}
-					for(int i = 0; i < players.length; i++) {
-						players[i].clear_hand();
-						if(players[i].view_funds() != 0) {
+					for(int i = 0; i < players.size(); i++) {
+						players.get(i).clear_hand();
+						if(players.get(i).view_funds() != 0) {
 							activePlayers[i] = true;
-							players[i].new_card(deck.deal_card());
-							players[i].new_card(deck.deal_card());
+							players.get(i).new_card(deck.deal_card());
+							players.get(i).new_card(deck.deal_card());
 						}
 						
 					}
@@ -164,8 +165,8 @@ public class ServerTable implements Runnable {
 		ArrayList<Poker_Hands> wins = new ArrayList<>();
 		ArrayList<ArrayList<Card>> hands = new ArrayList<>();
 		boolean isflush;
-		for(int i = 0; i < players.length; i++) {
-			hands.add(players[i].show_all_cards());
+		for(int i = 0; i < players.size(); i++) {
+			hands.add(players.get(i).show_all_cards());
 		}
 		ArrayList<Card> combined = new ArrayList<>();//combined hand of player and table cards
 		for(int j = 0; j < hands.size(); j++) {//j is current player
@@ -485,12 +486,12 @@ public class ServerTable implements Runnable {
 					if(amount <= 0) {
 						throw new NumberFormatException();
 					}
-					else if(amount > players[currentplayer].view_funds()) {
+					else if(amount > players.get(currentplayer).view_funds()) {
 						outlist.get(currentplayer).write("You don't have the funds to do that! Please Try Again.\n");
 						getPlayerInput();
 					}
 					else {
-						players[currentplayer].deposit_funds(-amount);
+						players.get(currentplayer).deposit_funds(-amount);
 						sendAllPlayers("Player " + currentplayer + " has bet $" + amount + "!\n" );
 						lastactive = currentplayer;
 						finalturn = false;
@@ -514,16 +515,16 @@ public class ServerTable implements Runnable {
 				incrementplayer();
 			}
 			else if(response.equalsIgnoreCase("call")) {
-				players[currentplayer].deposit_funds(-currentbet);
+				players.get(currentplayer).deposit_funds(-currentbet);
 				pot += currentbet;
 				sendAllPlayers("Player " + currentplayer + " has called!\n");
 				incrementplayer();
 			}
 			else if(response.equalsIgnoreCase("funds")) {
-				outlist.get(currentplayer).write("You currently have $" + players[currentplayer].view_funds() + "\n");
+				outlist.get(currentplayer).write("You currently have $" + players.get(currentplayer).view_funds() + "\n");
 			}
 			else if(response.equalsIgnoreCase("cards")) {
-				outlist.get(currentplayer).write("Your cards are: " + players[currentplayer].view_cards() + "\nThe cards on the table are: ");
+				outlist.get(currentplayer).write("Your cards are: " + players.get(currentplayer).view_cards() + "\nThe cards on the table are: ");
 				for(int i = 0; i < tablecards.size(); i++) {
 					outlist.get(currentplayer).write(tablecards.get(i).toString() + " ");
 				}
@@ -543,7 +544,7 @@ public class ServerTable implements Runnable {
 	 */
 	private void incrementplayer() {
 		currentplayer++;
-		if(currentplayer == playerlist.size()) {
+		if(currentplayer == psocket.size()) {
 			currentplayer = 0;
 		}
 	}
@@ -551,7 +552,7 @@ public class ServerTable implements Runnable {
 	 * tries to send a message to all players that exist
 	 */
 	private void sendAllPlayers(String string) {
-		for(int i = 0; i < playerlist.size(); i++) {
+		for(int i = 0; i < psocket.size(); i++) {
 			try {
 				outlist.get(i).write(string);
 			} catch (IOException e) {
