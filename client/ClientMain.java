@@ -7,11 +7,7 @@
 import java.io.*;
 import java.net.*;
 import java.util.Scanner;
-
-import javax.imageio.IIOException;
-
-import games.Player;
-import games.card_based.card;
+import shared.Player;
 
 public class ClientMain {
     private static final String SERVER_ADDRESS = "your.server.ip"; // Place blocker where we will put IP address UofC systems to keep it consistent
