@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 
-import games.card_based.Card;
-import games.card_based.Card.Rank;
-import games.card_based.Card.Suit;
+import shared.card_based.Card;
+import shared.card_based.Card.Rank;
+import shared.card_based.Card.Suit;
 
 public class testy implements Runnable {
 	public static void main(String[] args){

@@ -27,10 +27,10 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.math.*;
 
-import games.Player;
-import games.card_based.*;
-import games.card_based.Card.*;
-import games.card_based.Poker_Hands.winners;
+import shared.Player;
+import shared.card_based.*;
+import shared.card_based.Card.*;
+import shared.card_based.Poker_Hands.winners;
 
 public class ServerTable implements Runnable {
 	ArrayList<Socket> playerlist;

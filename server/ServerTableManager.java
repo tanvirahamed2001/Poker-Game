@@ -3,7 +3,7 @@ import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
-import games.Player;
+import shared.Player;
 
 public class ServerTableManager implements Runnable {
 	Socket conn;
