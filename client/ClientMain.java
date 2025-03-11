@@ -208,7 +208,7 @@ public class ClientMain {
     			socket.setSoTimeout(600000); //if server takes too long then disconnect
 				response = in.readLine();
 				if(response.equalsIgnoreCase("token")) {
-					System.out.println("It's your turn! Please enter a command! Available Commands Are: \"check\" (if no one has bet), \"call\" (if someone has bet), \"bet #\" (where # is the amount you bet) \"fold\", \"funds\", \"cards\"");
+					System.out.println("It's your turn! Please enter a command! Available Commands Are: \"check\" (if no one else has bet), \"call\" (if someone has bet), \"bet #\" (where # is the amount you bet) \"fold\", \"funds\", \"cards\"");
 					String input = scanner.nextLine() + "\n";
 					out.write(input);
 					out.flush();

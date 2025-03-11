@@ -40,6 +40,7 @@ public class ServerTable implements Runnable {
 	ArrayList<BufferedReader> inlist;
 	ArrayList<Card> tablecards;
 	int currentbet, lastactive, currentplayer, pot, currentturn;
+	ArrayList<Integer> currentbets;
 	ArrayList<Player> players;
 	boolean activePlayers[];
 	boolean finalturn;
@@ -74,16 +75,18 @@ public class ServerTable implements Runnable {
 		activePlayers = new boolean[psocket.size()];
 		pot = 0;
 		currentturn = 1;
+		currentbet = 0;
 		Deck deck = new Deck();
 		lastactive = players.size()-1;
 		currentplayer = 0;
-		currentbet = 0;
+		currentbets = new ArrayList<>();
 		tablecards = new ArrayList<Card>();
 		for(int i = 0; i < activePlayers.length; i++) {
 			activePlayers[i] = true; //all players are active at the start of the game
 			players.get(i).new_card(deck.deal_card());
 			players.get(i).new_card(deck.deal_card());
 			sendPlayer("Your cards are " + players.get(i).show_all_cards() + "\n", i);
+			currentbets.add(0);
 		}
 		
 		//turns: 0: pre-betting, 1: flop, 2: turn, 3: river, 4: game over
@@ -97,7 +100,7 @@ public class ServerTable implements Runnable {
 			if(finalturn) {
 				sendAllPlayers("All players are done, moving to next turn!\n");
 				currentturn++;
-				currentbet = 0;
+				clearbets();
 				lastactive = currentplayer;
 				incrementplayer();
 				switch(currentturn) {
@@ -169,6 +172,13 @@ public class ServerTable implements Runnable {
 				}
 			}
 		}
+	}
+	private void clearbets() {
+		currentbet = 0;
+		for(int i = 0; i < currentbets.size(); i++) {
+			currentbets.set(i, 0);
+		}
+		
 	}
 	/**
      * Determines who the winner is based on their cards
@@ -484,7 +494,7 @@ public class ServerTable implements Runnable {
 			sendPlayer("token\n", currentplayer);
 			String response = inlist.get(currentplayer).readLine();
 			if(response.equalsIgnoreCase("Check")) {
-				if(currentbet == 0) {
+				if(currentbets.get(currentplayer) >= currentbet) {
 					sendAllPlayers("Player " + currentplayer + " has checked!\n");
 					incrementplayer();
 				}
