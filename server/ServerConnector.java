@@ -21,7 +21,6 @@ public class ServerConnector implements Runnable {
 					System.out.print("Someone connected...\n");
 					ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
 					Player info = (Player)input.readObject();
-					System.out.println("Read the object");
 					pool.submit(new ServerTableManager(socket, info));
 				} catch (IOException e) {
 					// TODO Auto-generated catch block

@@ -23,6 +23,8 @@ after all the turns are done, calculate who has the best hand and give them the 
 
 import java.io.*;
 import java.net.Socket;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.math.*;
@@ -46,8 +48,15 @@ public class ServerTable implements Runnable {
 		this.players = plist;
 		outlist = new ArrayList<>();
 		inlist = new ArrayList<>();
+		psocket = new ArrayList<>();
 		for(int i = 0; i < players.size(); i++) {
 			psocket.add(players.get(i).socket);
+			try {
+				psocket.get(i).setSoTimeout(600000); //60 minute timeout
+			} catch (SocketException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		for(int i = 0; i < psocket.size(); i++) {
 			try {
@@ -59,12 +68,14 @@ public class ServerTable implements Runnable {
 		}
 	}
 	public void run() {
+		System.out.println("Game Started!");
+		sendAllPlayers("The Game has Begun!\n");
 		finalturn = false;
 		activePlayers = new boolean[psocket.size()];
 		pot = 0;
 		currentturn = 1;
 		Deck deck = new Deck();
-		lastactive = 0;
+		lastactive = players.size()-1;
 		currentplayer = 0;
 		currentbet = 0;
 		tablecards = new ArrayList<Card>();
@@ -72,6 +83,7 @@ public class ServerTable implements Runnable {
 			activePlayers[i] = true; //all players are active at the start of the game
 			players.get(i).new_card(deck.deal_card());
 			players.get(i).new_card(deck.deal_card());
+			sendPlayer("Your cards are " + players.get(i).show_all_cards() + "\n", i);
 		}
 		
 		//turns: 0: pre-betting, 1: flop, 2: turn, 3: river, 4: game over
@@ -87,6 +99,7 @@ public class ServerTable implements Runnable {
 				currentturn++;
 				currentbet = 0;
 				lastactive = currentplayer;
+				incrementplayer();
 				switch(currentturn) {
 				case 2:
 					//the flop
@@ -148,7 +161,7 @@ public class ServerTable implements Runnable {
 						}
 					}
 					if(active < 2) {
-						sendAllPlayers("The Game has Ended! Player " + winners.get(0).playernumber + "Has won! Goodbye!\n");
+						sendAllPlayers("The Game has Ended! Player " + winners.get(0).playernumber + "Has won!\nGoodbye!\n");
 						System.exit(0);
 					}
 					winners.clear();
@@ -465,11 +478,10 @@ public class ServerTable implements Runnable {
 	}
 	/**
      * get player input, will also update the game state depending on their actions
-     * probably should add a way to check funds and what cards are on the table
      */
 	private void getPlayerInput() {
 		try {
-			outlist.get(currentplayer).write("token\n");
+			sendPlayer("token\n", currentplayer);
 			String response = inlist.get(currentplayer).readLine();
 			if(response.equalsIgnoreCase("Check")) {
 				if(currentbet == 0) {
@@ -477,7 +489,7 @@ public class ServerTable implements Runnable {
 					incrementplayer();
 				}
 				else {
-					outlist.get(currentplayer).write("Someone else has opened! You must call, fold, or raise!\n");
+					sendPlayer("Someone else has opened! You must call, fold, or raise!\n", currentplayer);
 				}
 			}
 			else if(response.contains("bet") || response.contains("Bet")) {
@@ -487,7 +499,7 @@ public class ServerTable implements Runnable {
 						throw new NumberFormatException();
 					}
 					else if(amount > players.get(currentplayer).view_funds()) {
-						outlist.get(currentplayer).write("You don't have the funds to do that! Please Try Again.\n");
+						sendPlayer("You don't have the funds to do that! Please Try Again.\n", currentplayer);
 						getPlayerInput();
 					}
 					else {
@@ -501,11 +513,11 @@ public class ServerTable implements Runnable {
 					}
 				}
 				catch(ArrayIndexOutOfBoundsException e) {
-					outlist.get(currentplayer).write("Error: no bet amount entered! Please Try Again.\n");
+					sendPlayer("Error: no bet amount entered! Please Try Again.\n", currentplayer);
 					getPlayerInput();
 				}
 				catch(NumberFormatException e) {
-					outlist.get(currentplayer).write("Error: Please enter a valid number for a bet! Please Try Again.\n");
+					sendPlayer("Error: Please enter a valid number for a bet! Please Try Again.\n", currentplayer);
 					getPlayerInput();
 				}
 			}
@@ -521,22 +533,27 @@ public class ServerTable implements Runnable {
 				incrementplayer();
 			}
 			else if(response.equalsIgnoreCase("funds")) {
-				outlist.get(currentplayer).write("You currently have $" + players.get(currentplayer).view_funds() + "\n");
-			}
-			else if(response.equalsIgnoreCase("cards")) {
-				outlist.get(currentplayer).write("Your cards are: " + players.get(currentplayer).view_cards() + "\nThe cards on the table are: ");
-				for(int i = 0; i < tablecards.size(); i++) {
-					outlist.get(currentplayer).write(tablecards.get(i).toString() + " ");
-				}
-				outlist.get(currentplayer).write("\n");
-			}
-			else {
-				outlist.get(currentplayer).write("Invalid command! Please Try Again!\n");
+				sendPlayer("You currently have $" + players.get(currentplayer).view_funds() + "\n", currentplayer);
 				getPlayerInput();
 			}
-		} catch (IOException e) {
+			else if(response.equalsIgnoreCase("cards")) {
+				sendPlayer("Your cards are: " + players.get(currentplayer).view_cards() + "\nThe cards on the table are: ", currentplayer);
+				for(int i = 0; i < tablecards.size(); i++) {
+					sendPlayer(tablecards.get(i).toString() + " ", i);
+				}
+				sendPlayer("\n", currentplayer);
+				getPlayerInput();
+			}
+			else {
+				sendPlayer("Invalid command! Please Try Again!\n", currentplayer);
+				getPlayerInput();
+			}
+		}catch(SocketTimeoutException e) {//player timed out
+			
+		} 
+		catch (IOException e) {
 			e.printStackTrace();
-		}
+		} 
 		
 	}
 	/**
@@ -555,10 +572,19 @@ public class ServerTable implements Runnable {
 		for(int i = 0; i < psocket.size(); i++) {
 			try {
 				outlist.get(i).write(string);
+				outlist.get(i).flush();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
 		
+	}
+	private void sendPlayer(String string, int playernumber) {
+		try {
+			outlist.get(playernumber).write(string);
+			outlist.get(playernumber).flush();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 }

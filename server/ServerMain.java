@@ -27,7 +27,7 @@ public class ServerMain  {
 	public static int waitforGame(int key, Player player) {
 		if(matching_games.get(key).size() < maxplayers) {
 			matching_games.get(key).add(player);
-			System.out.println("A player has been added to Game" + key + "! Currently " + matching_games.get(key).size() + "/" + maxplayers);
+			System.out.println("A player has been added to Game " + key + "! Currently " + matching_games.get(key).size() + "/" + maxplayers);
 			if(matching_games.get(key).size() == maxplayers) {//start the game cause there's max players
 				gamepool.submit(new ServerTable(matching_games.get(key)));
 			}
@@ -39,7 +39,7 @@ public class ServerMain  {
 	}
 	public static synchronized int addNewGame() {
 		matching_games.put(id, new ArrayList<Player>());
-		System.out.println("A player has created Game" + id + "!");
+		System.out.println("A player has created Game " + id + "!");
 		id++; //if this was IRL this would be a potential risk due to integer overflows
 		return id-1;
 	}

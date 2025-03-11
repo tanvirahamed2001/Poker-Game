@@ -45,6 +45,7 @@ public class ClientMain {
 
             // Step 5: Choose or create a game
             handleGameSelection(scanner);
+            playGame(scanner);
         } else {
             System.out.println("Failed to connect to the server. Please try again later.");
         }
@@ -199,5 +200,29 @@ public class ClientMain {
         } catch (IOException e) {
             System.err.println("Error closing connection: " + e.getMessage());
         }
+    }
+    private static void playGame(Scanner scanner) {
+    	String response = "";
+    	while(!response.equals("Goodbye!")) {
+    		try {
+    			socket.setSoTimeout(600000); //if server takes too long then disconnect
+				response = in.readLine();
+				if(response.equalsIgnoreCase("token")) {
+					System.out.println("It's your turn! Please enter a command! Available Commands Are: \"check\" (if no one has bet), \"call\" (if someone has bet), \"bet #\" (where # is the amount you bet) \"fold\", \"funds\", \"cards\"");
+					String input = scanner.nextLine() + "\n";
+					out.write(input);
+					out.flush();
+				}
+				else {
+					System.out.println(response);
+				}
+			} catch(SocketTimeoutException e) {
+				break;
+			} 
+    		catch (IOException e) {
+				e.printStackTrace();
+				break;
+			}
+    	}
     }
 }
