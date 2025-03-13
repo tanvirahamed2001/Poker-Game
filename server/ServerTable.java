@@ -27,6 +27,8 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
 import java.math.*;
 
 import shared.Player;
@@ -44,14 +46,16 @@ public class ServerTable implements Runnable {
 	ArrayList<Player> players;
 	boolean activePlayers[];
 	boolean finalturn;
-	private static ServerTable instance;
+	private int gameId;
+	private static Map<Integer, ServerTable> gameInstances = new HashMap<>();
 
-	public ServerTable(ArrayList<Player> plist) {
+	public ServerTable(int gameId, ArrayList<Player> plist) {
+		this.gameId = gameId;
 		this.players = plist;
 		outlist = new ArrayList<>();
 		inlist = new ArrayList<>();
 		psocket = new ArrayList<>();
-		instance = this;
+		gameInstances.put(gameId, this);
 		for(int i = 0; i < players.size(); i++) {
 			psocket.add(players.get(i).socket);
 			try {
@@ -71,19 +75,19 @@ public class ServerTable implements Runnable {
 		}
 	}
 
-	 public static synchronized ServerTable getInstance() {
-        return instance;
+	public static ServerTable getInstance(int gameId) {
+        return gameInstances.get(gameId);
     }
     
     // This method is called to update the game state
 	public synchronized void updateState(GameState state) {
-		// Update the in-memory game state
-		this.players = state.getPlayers();
-		this.pot = state.getPot();
-		this.currentturn = state.getCurrentTurn();
-		this.tablecards = state.getTableCards();
-		System.out.println("Backup game state updated");
-	}
+        this.players = state.getPlayers();
+        this.pot = state.getPot();
+        this.currentturn = state.getCurrentTurn();
+        this.tablecards = state.getTableCards();
+        System.out.println("Game " + gameId + " state updated from snapshot.");
+    }
+	
 	public void run() {
 		System.out.println("Game Started!");
 		sendAllPlayers("The Game has Begun!\n");
@@ -617,7 +621,7 @@ public class ServerTable implements Runnable {
 	private void processPlayerAction(String response) {
 		// logic to update game state
 		// After updating variables such as pot, currentTurn, player bets, etc.
-		GameState currentState = new GameState(players, pot, currentturn, tablecards);
+		GameState currentState = new GameState(gameId, players, pot, currentturn, tablecards);
 		ReplicationManager.getInstance(true).sendStateUpdate(currentState);
 	}
 	

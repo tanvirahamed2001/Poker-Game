@@ -47,7 +47,7 @@ public class ServerMain {
                                + matching_games.get(key).size() + "/" + maxplayers);
             if (matching_games.get(key).size() == maxplayers) { 
                 // If maximum players have joined, start the game.
-                gamepool.submit(new ServerTable(matching_games.get(key)));
+                gamepool.submit(new ServerTable(key, matching_games.get(key)));
             }
             return 0;
         } else {

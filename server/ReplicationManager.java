@@ -97,11 +97,12 @@ public class ReplicationManager {
 
     // Updates the backup's local game state
     private void updateLocalGameState(GameState state) {
-        ServerTable currentTable = ServerTable.getInstance();
+        int gameId = state.getGameId();
+        ServerTable currentTable = ServerTable.getInstance(gameId);
         if (currentTable != null) {
             currentTable.updateState(state);
         } else {
-            System.err.println("No active game table found on backup.");
+            System.err.println("No active game found for game ID " + gameId + " on backup");
         }
     }
 
@@ -147,7 +148,7 @@ public class ReplicationManager {
 
     // Starts a server socket to accept client connections
     private void startClientListener() {
-        final int CLIENT_PORT = 6834;  // Change this if needed for testing
+        final int CLIENT_PORT = 6836;  // Change this if needed for testing
         try (ServerSocket clientSocket = new ServerSocket(CLIENT_PORT)) {
             clientSocket.setReuseAddress(true);
             System.out.println("New primary now accepting client connections on port " + CLIENT_PORT);
