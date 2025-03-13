@@ -12,6 +12,7 @@ import shared.Player;
 public class ClientMain {
     private static final String SERVER_ADDRESS = "localhost"; // Place blocker where we will put IP address UofC systems to keep it consistent
     private static final int SERVER_PORT = 6834; // Match server port
+    private static final int BACKUP_PORT = 6836; // BACKUP PORT
     private static Socket socket;
     private static PrintWriter out;
     private static BufferedReader in;
@@ -146,8 +147,18 @@ public class ClientMain {
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             return true;
         } catch (IOException e) {
-            System.err.println("Error: Unable to connect to server - " + e.getMessage());
-            return false;
+            try{
+                // primary connection failed, attempt backup
+                System.err.println("Error: Unable to connect to server - " + e.getMessage());
+                socket = new Socket(SERVER_ADDRESS, BACKUP_PORT);
+                out = new PrintWriter(socket.getOutputStream(), true);
+                obj_out_stream = new ObjectOutputStream(socket.getOutputStream());
+                in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                return true;
+            } catch(IOException e2) {
+                System.err.println("Error: Unable to connect to primary server and backup- " + e2.getMessage());
+                return false;
+            }
         }
     }
     private static void sendMessage(String message) {

@@ -1,8 +1,10 @@
 package shared.card_based;
 
+import java.io.Serializable;
+
 import shared.card_based.Card.Rank;
 
-public class Poker_Hands{
+public class Poker_Hands implements Serializable{
 	public winners result;
 	public Card highcard;
 	public Card secondhigh;

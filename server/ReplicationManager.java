@@ -20,7 +20,7 @@ public class ReplicationManager {
     private long lastUpdateTimestamp;
     
     // Replication port (for primary-to-backup communication)
-    private final int REPLICATION_PORT = 6835;
+    private final int REPLICATION_PORT = 6836;
 
     private ReplicationManager(boolean isPrimary) {
         this.isPrimary = isPrimary;
@@ -106,7 +106,7 @@ public class ReplicationManager {
         }
     }
 
-    private final long HEARTBEAT_THRESHOLD = 5000; // milliseconds will need to probably change later
+    private final long HEARTBEAT_THRESHOLD = 500000; // milliseconds will need to probably change later
 
     // Starts a heartbeat timer
     private void startHeartbeat() {
@@ -166,7 +166,10 @@ public class ReplicationManager {
         }
     }
 
-    // Example method to handle a new client connection
+    /**
+     * For when primary server crashes, this function will take over all the client connections
+     * @param client
+     */
     private void handleClientConnection(Socket client) {
         System.out.println("Accepted a new client connection post-failover.");
         // reuse your ServerConnector's logic

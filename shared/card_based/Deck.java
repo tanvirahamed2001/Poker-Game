@@ -1,8 +1,9 @@
 package shared.card_based;
 
+import java.io.Serializable;
 import java.util.*;
 
-public class Deck {
+public class Deck implements Serializable {
 
     private List<Card> cards;
 

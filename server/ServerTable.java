@@ -111,6 +111,7 @@ public class ServerTable implements Runnable {
 		
 		//turns: 0: pre-betting, 1: flop, 2: turn, 3: river, 4: game over
 		while(currentturn < 5) {
+			replicateGameState();
 			if(lastactive == currentplayer) {
 				finalturn = true;
 			}
@@ -618,7 +619,7 @@ public class ServerTable implements Runnable {
 		}
 	}
 
-	private void processPlayerAction(String response) {
+	private void replicateGameState() {
 		// logic to update game state
 		// After updating variables such as pot, currentTurn, player bets, etc.
 		GameState currentState = new GameState(gameId, players, pot, currentturn, tablecards);

@@ -1,6 +1,8 @@
 package shared.card_based;
 
-public class Card {
+import java.io.Serializable;
+
+public class Card implements Serializable{
     
     public enum Suit {HEARTS, DIAMOND, CLUBS, SPADES}
 
