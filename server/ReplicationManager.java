@@ -106,6 +106,7 @@ public class ReplicationManager {
         }
     }
 
+    //TODO: Find a good heartbeat timer and maybe rethink how we implement this (PLEASE REMOVE ONCE DONE)
     private final long HEARTBEAT_THRESHOLD = 500000; // milliseconds will need to probably change later
 
     // Starts a heartbeat timer

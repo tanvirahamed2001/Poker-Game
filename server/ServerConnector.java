@@ -16,7 +16,8 @@ public class ServerConnector implements Runnable {
 			ServerSocket connector = new ServerSocket(6834); 
 			System.out.print("Waiting for connection...\n");
 			while(true) {
-				try {//accepts a new connection then hands it over to the ServerTableManager
+				try {
+					//accepts a new connection then hands it over to the ServerTableManager
 					Socket socket = connector.accept();
 					System.out.print("Someone connected...\n");
 					ObjectInputStream input = new ObjectInputStream(socket.getInputStream());

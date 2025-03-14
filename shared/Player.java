@@ -5,6 +5,8 @@ import java.net.Socket;
 import java.util.ArrayList;
 import shared.card_based.Card;
 
+//TODO: Rewrite player so it does not house a socket so we can send it over a network to replicate data to the backup servers (PLEASE REMOVE THIS TODO ONCE FINISHED)
+
 public class Player implements Serializable {
 
     private String name;
@@ -92,7 +94,7 @@ public class Player implements Serializable {
             return bet;
         }
         return 0;
-        //TODO: Error out with something
+        //TODO: Error out with something (PLEASE REMOVE THIS TODO ONCE FINISHED)
     }
 
 }
