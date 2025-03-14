@@ -42,8 +42,6 @@ public class ClientMain {
             // Send player data to server
             sendPlayerData();
 
-            // TODO: Tim -> interact with the table manager to create / join a table. Start a game of poker once William is finished the game logic on the server side. Implement any missing classes / logic.
-
             // Step 5: Choose or create a game
             handleGameSelection(scanner);
             playGame(scanner);
