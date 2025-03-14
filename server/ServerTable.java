@@ -36,6 +36,7 @@ import shared.card_based.*;
 import shared.card_based.Card.*;
 import shared.card_based.Poker_Hands.winners;
 
+//TODO: Rewrite how we handle assigning players and sockets
 public class ServerTable implements Runnable {
 	ArrayList<Socket> psocket;
 	ArrayList<BufferedWriter> outlist;
@@ -48,7 +49,7 @@ public class ServerTable implements Runnable {
 	boolean finalturn;
 	private int gameId;
 	private static Map<Integer, ServerTable> gameInstances = new HashMap<>();
-
+	
 	public ServerTable(int gameId, ArrayList<Player> plist) {
 		this.gameId = gameId;
 		this.players = plist;

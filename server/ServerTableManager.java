@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import shared.Player;
 
+//TODO: Rewrite how we handle assigning players and sockets
 public class ServerTableManager implements Runnable {
 	Socket conn;
 	BufferedWriter out;
