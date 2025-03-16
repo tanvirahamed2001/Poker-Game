@@ -8,16 +8,15 @@ import java.io.*;
 import java.net.*;
 import java.util.Scanner;
 import shared.Player;
+import shared.communication_objects.GameList;
 
 public class ClientMain {
     private static final String SERVER_ADDRESS = "localhost"; // Place blocker where we will put IP address UofC systems to keep it consistent
     private static final int SERVER_PORT = 6834; // Match server port
     private static final int BACKUP_PORT = 6836; // BACKUP PORT
     private static Socket socket;
-    private static PrintWriter out;
-    private static BufferedReader in;
-    private static ObjectOutputStream obj_out_stream;
-    private static ObjectInputStream obj_in_stream;
+    private static ObjectOutputStream out;
+    private static ObjectInputStream in;
     private static Player player;
 
     public static void main(String[] args) {
@@ -26,9 +25,6 @@ public class ClientMain {
 
         // Display welcome message for the client
         System.out.println("Welcome to Poker Game!\n");
-
-        // Consume the newLine
-        //scanner.nextLine(); 
 
         // Create the player
         player = getPlayerInfo(scanner);
@@ -45,6 +41,7 @@ public class ClientMain {
             // Step 5: Choose or create a game
             handleGameSelection(scanner);
             playGame(scanner);
+
         } else {
             System.out.println("Failed to connect to the server. Please try again later.");
         }
@@ -80,8 +77,8 @@ public class ClientMain {
      */
     private static void sendPlayerData() {
         try {
-            obj_out_stream.writeObject(player);
-            obj_out_stream.flush();
+            out.writeObject(player);
+            out.flush();
         } catch(IOException e) {
             e.printStackTrace();
         }
@@ -95,7 +92,7 @@ public class ClientMain {
      */
     private static void getObjectData() {
         try {
-            Object obj = obj_in_stream.readObject();
+            Object obj = in.readObject();
             if(obj instanceof Player) {
                 updatePlayer((Player)obj);
             }
@@ -116,22 +113,6 @@ public class ClientMain {
         System.out.println("Updated player information!]\n");
     }
 
-    // Old implementation for when we used double
-    private static double getValidDepositAmount(Scanner scanner) {
-        double amount;
-        while (true) {
-            System.out.print("Enter initial deposit amount: $");
-            try {
-                amount = Double.parseDouble(scanner.nextLine().trim());
-                if (amount >= 0) break;
-                System.out.println("Deposit amount must be non-negative.");
-            } catch (NumberFormatException e) {
-                System.out.println("Invalid amount. Please enter a valid number.");
-            }
-        }
-        return amount;
-    }
-
     /**
      * Attempts to connect to the given server IP and port
      * Sets up the necessary streams for input and output
@@ -140,18 +121,15 @@ public class ClientMain {
     private static boolean connectToServer() {
         try {
             socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
-            out = new PrintWriter(socket.getOutputStream(), true);
-            obj_out_stream = new ObjectOutputStream(socket.getOutputStream());
-            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            out = new ObjectOutputStream(socket.getOutputStream());
             return true;
         } catch (IOException e) {
             try{
                 // primary connection failed, attempt backup
                 System.err.println("Error: Unable to connect to server - " + e.getMessage());
                 socket = new Socket(SERVER_ADDRESS, BACKUP_PORT);
-                out = new PrintWriter(socket.getOutputStream(), true);
-                obj_out_stream = new ObjectOutputStream(socket.getOutputStream());
-                in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                out = new ObjectOutputStream(socket.getOutputStream());
+                in = new ObjectInputStream(socket.getInputStream());
                 return true;
             } catch(IOException e2) {
                 System.err.println("Error: Unable to connect to primary server and backup- " + e2.getMessage());
@@ -159,35 +137,23 @@ public class ClientMain {
             }
         }
     }
-    private static void sendMessage(String message) {
-        //TODO: Finish sendMessage, actually send to the server
-        if (out != null) {
-            out.println(message);
-        }
-    }
 
-    private static void startListenerThread() {
-        Thread listener = new Thread(() -> {
-            try {
-                String serverMessage;
-                while ((serverMessage = in.readLine()) != null) {
-                    System.out.println("Server: " + serverMessage);
-                }
-            } catch (IOException e) {
-                System.err.println("Connection lost: " + e.getMessage());
-            }
-        });
-        listener.setDaemon(true);
-        listener.start();
+    private static void sendMessage(String message) {
     }
 
     private static void handleGameSelection(Scanner scanner) {
+
         System.out.println("Waiting for available games...");
+        
         try {
-            String serverResponse;
-            while ((serverResponse = in.readLine()) != null) {
-                if (serverResponse.equals("Done")) break;
-                System.out.println(serverResponse);
+            
+            Object serverResponse = in.readObject();
+
+            if(serverResponse instanceof GameList) {
+                GameList games = (GameList) serverResponse;
+                for(String game : games.getGames()) {
+                    System.out.print(game);
+                }
             }
 
             // Get user input for game selection
@@ -196,7 +162,13 @@ public class ClientMain {
             sendMessage(choice);
 
         } catch (IOException e) {
+
             System.err.println("Error receiving game selection: " + e.getMessage());
+
+        } catch (ClassNotFoundException e2) {
+
+            System.err.println("Error with game list object " + e2.getMessage());
+
         }
     }
 
