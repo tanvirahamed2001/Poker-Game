@@ -108,7 +108,7 @@ public class ServerTable implements Runnable {
 		lastActive = currentplayer;
 	
 		// Main game loop: for each street until showdown.
-		while (currentTurn < 5) {
+		while (currentTurn <= 5) {
 			// Start a betting round.
 			currentState.updateGameState(gameId, players, pot, currentTurn, tablecards);
 			ReplicationManager.getInstance(true).sendStateUpdate(currentState);
