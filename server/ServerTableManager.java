@@ -52,6 +52,8 @@ public class ServerTableManager implements Runnable {
                 return table;
             } catch (NumberFormatException e) {
                 if(response.equalsIgnoreCase("new")) {
+                    message = "Started new table, waiting for another player!\n";
+                    connection.sendMessage(message);
                     return 0;
                 } else {
                     connection.sendMessage("Invalid Input! Please Try Again\nDone\n");

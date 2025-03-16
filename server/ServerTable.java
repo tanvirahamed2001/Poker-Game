@@ -79,6 +79,9 @@ public class ServerTable implements Runnable {
         System.out.println("Game " + gameId + " state updated from snapshot.");
     }
 
+    /**
+     * This runs the game logic
+     */
 	@Override
 	public void run() {
 		System.out.println("Game Started!");
@@ -102,11 +105,12 @@ public class ServerTable implements Runnable {
 			sendPlayer("Your cards are: " + players.get(i).show_all_cards() + "\n", i);
 			currentBets.add(0);
 		}
+
 		// Initially, set lastActive to the starting player.
 		lastActive = currentplayer;
 	
 		// Main game loop: for each street until showdown.
-		while (currentTurn < 5) {
+		while (currentTurn <= 5) {
 			// Start a betting round.
 			int bettingStart = currentplayer; // record who started the round
 			boolean roundCompleted = false;
