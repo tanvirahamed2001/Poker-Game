@@ -1,69 +1,66 @@
 import java.io.*;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.ArrayList;
 import shared.Player;
+import shared.PlayerConnection;
 
-// Handles assigning players to tables and manages socket communication
 public class ServerTableManager implements Runnable {
-    private Socket conn;
-    private BufferedWriter out;
-    private BufferedReader in;
-    private static HashMap<Integer, ArrayList<Player>> games = ServerMain.getGames();
-    private Player player;
+    private PlayerConnection connection;
+    // Update the type of the games map to use PlayerConnection.
+    private static HashMap<Integer, ArrayList<PlayerConnection>> games = ServerMain.getGames();
 
-    public ServerTableManager(Socket newConn, Player player) {
-        this.conn = newConn;
-        this.player = player;
+    public ServerTableManager(Socket socket, Player player) {
         try {
-            out = new BufferedWriter(new OutputStreamWriter(conn.getOutputStream()));
-            in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            // Create a PlayerConnection that couples the Player with its socket/streams.
+            this.connection = new PlayerConnection(player, socket);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+    
     @Override
     public void run() {
-        int game = getInput();
-        if (game > 0) {
-            ServerMain.waitforGame(game, player);
-        } else if (game == 0) {
-            game = ServerMain.addNewGame();
-            ServerMain.waitforGame(game, player);
+        int gameId = getInput();
+        if (gameId > 0) {
+            // Now pass the connection instead of connection.getPlayer()
+            ServerMain.waitforGame(gameId, connection);
+        } else if (gameId == 0) {
+            gameId = ServerMain.addNewGame();
+            ServerMain.waitforGame(gameId, connection);
         } else {
-            // Handle error case
             System.err.println("Invalid input or error occurred.");
         }
     }
-
+    
     private int getInput() {
         try {
             String message = "Games Available:\n";
             String response;
-            Integer[] keys = games.keySet().toArray(new Integer[]{}); // Get the keys within the map
+            // Get the keys from the games map.
+            Integer[] keys = games.keySet().toArray(new Integer[]{});
             for (int i = 0; i < games.size(); i++) {
-                message += "Game " + keys[i] + ": " + games.get(keys[i]).size() + "/" + ServerMain.maxplayers + " Players\n";
+                message += "Game " + keys[i] + ": " + games.get(keys[i]).size() + "/" 
+                           + ServerMain.maxplayers + " Players\n";
             }
             message += "Please input the game number you would like to join, or type 'new' to create a new game\nDone\n";
-            out.write(message);
-            out.flush();
-            response = in.readLine(); // Read client response
-
+            connection.sendMessage(message);
+            response = connection.readMessage(); 
+            
             try {
                 int table = Integer.parseInt(response);
                 return table;
             } catch (NumberFormatException e) {
-                if (response.equalsIgnoreCase("new")) {
-                    return 0; // Create a new game
+                if(response.equalsIgnoreCase("new")) {
+                    return 0;
                 } else {
-                    out.write("Invalid Input! Please Try Again\nDone\n");
-                    out.flush();
-                    return getInput(); // Retry input
+                    connection.sendMessage("Invalid Input! Please Try Again\nDone\n");
+                    return getInput(); 
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return -1; // Error case
+        return -1;
     }
 }

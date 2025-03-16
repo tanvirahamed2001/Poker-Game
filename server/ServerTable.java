@@ -21,610 +21,542 @@ if player is active: give token -> listen for commands (until timeout)
 after all the turns are done, calculate who has the best hand and give them the pot, players who are out of cash are kicked, those who aren't restart play
 */
 
-import java.io.*;
-import java.net.Socket;
+import java.io.IOException;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
-import java.math.*;
-
 import shared.Player;
+import shared.PlayerConnection;
 import shared.card_based.*;
 import shared.card_based.Card.*;
 import shared.card_based.Poker_Hands.winners;
 
-//TODO: Rewrite how we handle assigning players and sockets
 public class ServerTable implements Runnable {
-	ArrayList<Socket> psocket;
-	ArrayList<BufferedWriter> outlist;
-	ArrayList<BufferedReader> inlist;
-	ArrayList<Card> tablecards;
-	int currentbet, lastactive, currentplayer, pot, currentturn;
-	ArrayList<Integer> currentbets;
-	ArrayList<Player> players;
-	boolean activePlayers[];
-	boolean finalturn;
-	private int gameId;
-	private static Map<Integer, ServerTable> gameInstances = new HashMap<>();
-	
-	public ServerTable(int gameId, ArrayList<Player> plist) {
-		this.gameId = gameId;
-		this.players = plist;
-		outlist = new ArrayList<>();
-		inlist = new ArrayList<>();
-		psocket = new ArrayList<>();
-		gameInstances.put(gameId, this);
-		for(int i = 0; i < players.size(); i++) {
-			psocket.add(players.get(i).socket);
-			try {
-				psocket.get(i).setSoTimeout(600000); //60 minute timeout
-			} catch (SocketException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-		for(int i = 0; i < psocket.size(); i++) {
-			try {
-				outlist.add(new BufferedWriter(new OutputStreamWriter(psocket.get(i).getOutputStream())));
-				inlist.add(new BufferedReader(new InputStreamReader(psocket.get(i).getInputStream())));
-			} catch(IOException e) {
-				e.printStackTrace();
-			}
-		}
-	}
+    // Unique game ID and a static map to lookup running tables.
+    private int gameId;
+    private static Map<Integer, ServerTable> gameInstances = new HashMap<>();
 
-	public static ServerTable getInstance(int gameId) {
+    // List of player connections and the corresponding players.
+    private ArrayList<PlayerConnection> connections;
+    private ArrayList<Player> players;
+
+    // Game state fields.
+    private ArrayList<Card> tablecards;
+    private int currentbet, lastActive, currentplayer, pot, currentTurn;
+    private ArrayList<Integer> currentBets;
+    private boolean activePlayers[];
+    
+    // Constructor accepts a list of PlayerConnection objects.
+    public ServerTable(int gameId, ArrayList<PlayerConnection> connections) {
+        this.gameId = gameId;
+        this.connections = connections;
+        // Extract players from the connections.
+        this.players = new ArrayList<>();
+        for (PlayerConnection pc : connections) {
+            players.add(pc.getPlayer());
+            try {
+                pc.getSocket().setSoTimeout(600000); // 60-minute timeout.
+            } catch (SocketException e) {
+                e.printStackTrace();
+            }
+        }
+        gameInstances.put(gameId, this);
+    }
+
+    public static ServerTable getInstance(int gameId) {
         return gameInstances.get(gameId);
     }
-    
-    // This method is called to update the game state
-	public synchronized void updateState(GameState state) {
+
+    // Called to update the game state (via replication).
+    public synchronized void updateState(GameState state) {
         this.players = state.getPlayers();
         this.pot = state.getPot();
-        this.currentturn = state.getCurrentTurn();
+        this.currentTurn = state.getCurrentTurn();
         this.tablecards = state.getTableCards();
         System.out.println("Game " + gameId + " state updated from snapshot.");
     }
-	
+
+	@Override
 	public void run() {
 		System.out.println("Game Started!");
 		sendAllPlayers("The Game has Begun!\n");
-		finalturn = false;
-		activePlayers = new boolean[psocket.size()];
+	
+		int numPlayers = connections.size();
+		activePlayers = new boolean[numPlayers];
 		pot = 0;
-		currentturn = 1;
+		currentTurn = 1;
 		currentbet = 0;
 		Deck deck = new Deck();
-		lastactive = players.size()-1;
 		currentplayer = 0;
-		currentbets = new ArrayList<>();
-		tablecards = new ArrayList<Card>();
-		for(int i = 0; i < activePlayers.length; i++) {
-			activePlayers[i] = true; //all players are active at the start of the game
+		currentBets = new ArrayList<>();
+		tablecards = new ArrayList<>();
+	
+		// Initialize players: mark all active, deal two cards each, and set initial bets.
+		for (int i = 0; i < numPlayers; i++) {
+			activePlayers[i] = true;
 			players.get(i).new_card(deck.deal_card());
 			players.get(i).new_card(deck.deal_card());
-			sendPlayer("Your cards are " + players.get(i).show_all_cards() + "\n", i);
-			currentbets.add(0);
+			sendPlayer("Your cards are: " + players.get(i).show_all_cards() + "\n", i);
+			currentBets.add(0);
 		}
-		
-		//turns: 0: pre-betting, 1: flop, 2: turn, 3: river, 4: game over
-		while(currentturn < 5) {
-			replicateGameState();
-			if(lastactive == currentplayer) {
-				finalturn = true;
-			}
-			if(activePlayers[currentplayer] == true) {
-				getPlayerInput();
-			}
-			if(finalturn) {
-				sendAllPlayers("All players are done, moving to next turn!\n");
-				currentturn++;
-				clearbets();
-				lastactive = currentplayer;
-				incrementplayer();
-				switch(currentturn) {
-				case 2:
-					//the flop
+		// Initially, set lastActive to the starting player.
+		lastActive = currentplayer;
+	
+		// Main game loop: for each street until showdown.
+		while (currentTurn < 5) {
+			// Start a betting round.
+			int bettingStart = currentplayer; // record who started the round
+			boolean roundCompleted = false;
+			do {
+				// If current player is active, get input.
+				if (activePlayers[currentplayer]) {
+					getPlayerInput();
+				}
+				incrementPlayer();
+	
+				// If we have looped back to the bettingStart and no new bet was made (i.e. currentplayer equals lastActive),
+				// then end the betting round.
+				if (currentplayer == bettingStart && currentplayer == lastActive) {
+					roundCompleted = true;
+				}
+			} while (!roundCompleted);
+	
+			sendAllPlayers("Betting round over. Moving to next turn.\n");
+	
+			// Advance to next street.
+			currentTurn++;
+			clearBets();
+	
+			// Deal new community cards or, if showdown, process winners.
+			switch (currentTurn) {
+				case 2: // Flop.
 					tablecards.add(deck.deal_card());
 					tablecards.add(deck.deal_card());
 					tablecards.add(deck.deal_card());
-					sendAllPlayers("Turn 2: The Flop\n Card 1: " + tablecards.get(0).toString() + "\nCard 2: " + tablecards.get(1).toString() + "\nCard 3: " + tablecards.get(2).toString() + "\n");
+					sendAllPlayers("Turn 2: The Flop\nCards: " + tablecards.toString() + "\n");
 					break;
-				case 3:	
-					//the turn
+				case 3: // Turn.
 					tablecards.add(deck.deal_card());
-					sendAllPlayers("Turn 3: The Turn\n Card 4: " + tablecards.get(3).toString() + "\n");
+					sendAllPlayers("Turn 3: The Turn\nCard: " + tablecards.get(3).toString() + "\n");
 					break;
-				case 4:
+				case 4: // River.
 					tablecards.add(deck.deal_card());
-					sendAllPlayers("Turn 4: The River\n Card 5: " + tablecards.get(4).toString() + "\n");
+					sendAllPlayers("Turn 4: The River\nCard: " + tablecards.get(4).toString() + "\n");
 					break;
-				case 5:
+				case 5: // Showdown.
 					ArrayList<Poker_Hands> winners = determine_winner();
-					if(winners.size() == 1) {
+					if (winners.size() == 1) {
 						int winnum = winners.get(0).playernumber;
-						sendAllPlayers("Player " + winnum + "has won the round! They earn $" + pot + "!\n");
+						sendAllPlayers("Player " + winnum + " has won the round! They earn $" + pot + "!\n");
 						players.get(winnum).deposit_funds(pot);
-					}
-					else {
+					} else {
 						sendAllPlayers("Players ");
-						for(int i = 0; i < winners.size(); i++) {
+						for (int i = 0; i < winners.size(); i++) {
 							sendAllPlayers(winners.get(i).playernumber + " ");
-							if(i != winners.size()-1) {
+							if (i != winners.size() - 1) {
 								sendAllPlayers("and ");
 							}
 						}
-						sendAllPlayers("Have tied! The pot will be split among the winners!\n");
-						pot /= winners.size();
-						for(int i = 0; i < winners.size(); i++) {
-							players.get(winners.get(i).playernumber).deposit_funds(pot);
+						sendAllPlayers("have tied! The pot will be split among the winners.\n");
+						int share = pot / winners.size();
+						for (Poker_Hands ph : winners) {
+							players.get(ph.playernumber).deposit_funds(share);
 						}
 					}
-					for(int i = 0; i < players.size(); i++) {
+					// Reset for new hand.
+					for (int i = 0; i < players.size(); i++) {
 						players.get(i).clear_hand();
-						if(players.get(i).view_funds() != 0) {
+						if (players.get(i).view_funds() > 0) {
 							activePlayers[i] = true;
 							players.get(i).new_card(deck.deal_card());
 							players.get(i).new_card(deck.deal_card());
+							sendPlayer("New hand: " + players.get(i).show_all_cards() + "\n", i);
+						} else {
+							activePlayers[i] = false;
 						}
-						
 					}
 					pot = 0;
-					currentturn = 1;
-					incrementplayer();
-					currentbet = 0;
-					finalturn = false;
-					lastactive = currentplayer;
+					currentTurn = 1;
+					clearBets();
 					tablecards.clear();
-					int active = 0;
-					for(int i = 0; i < activePlayers.length; i++) {
-						if(activePlayers[i] == true) {
-							active++;
-						}
-					}
-					if(active < 2) {
-						sendAllPlayers("The Game has Ended! Player " + winners.get(0).playernumber + "Has won!\nGoodbye!\n");
-						System.exit(0);
-					}
-					winners.clear();
+					// Reset turn tracking for new hand.
+					currentplayer = 0;
+					lastActive = currentplayer;
 					break;
-				}
 			}
+			// Reset betting round variables for next street.
+			lastActive = currentplayer;
 		}
-	}
-	private void clearbets() {
-		currentbet = 0;
-		for(int i = 0; i < currentbets.size(); i++) {
-			currentbets.set(i, 0);
-		}
-		
-	}
-	/**
-     * Determines who the winner is based on their cards
-     * @return an int representing which player number won the game
-     */
-	private ArrayList<Poker_Hands> determine_winner() {
-		ArrayList<Poker_Hands> wins = new ArrayList<>();
-		ArrayList<ArrayList<Card>> hands = new ArrayList<>();
-		boolean isflush;
-		for(int i = 0; i < players.size(); i++) {
-			hands.add(players.get(i).show_all_cards());
-		}
-		ArrayList<Card> combined = new ArrayList<>();//combined hand of player and table cards
-		for(int j = 0; j < hands.size(); j++) {//j is current player
-			for(int i = 0; i < tablecards.size(); i++) {
-				combined.add(tablecards.get(i));
-			}
-			combined.add(hands.get(j).get(0));
-			combined.add(hands.get(j).get(1));//add the player and table hands together
-			combined.sort(Comparator.comparing(Card::get_rank)); //sort by rank
-			ArrayList<Card> straight = check_straight(combined);
-			if(!straight.isEmpty()) {
-				if(!check_flush(straight).isEmpty()) {
-					wins.add(new Poker_Hands(winners.STRAIGHTFLUSH, straight.get(straight.size()-1), j));
-					combined.clear();
-					continue;
-				}
-			}
-			wins.add(check_other(combined, j));
-			if(wins.get(j).result == winners.FOURKIND || wins.get(j).result == winners.FULLHOUSE) {
-				combined.clear();
-				continue;
-			}
-			else {
-				if(!straight.isEmpty()) {
-					wins.set(j, new Poker_Hands(winners.STRAIGHT, straight.get(0), j));
-					combined.clear();
-					continue;
-				}
-				else if(!check_flush(combined).isEmpty()) {
-					ArrayList<Card> flusher = check_flush(combined);
-					wins.set(j, new Poker_Hands(winners.FLUSH, flusher.get(flusher.size()-1), j));
-					combined.clear();
-					continue;
-				}
-				else{
-					combined.clear();
-					continue;
-				}
-			}
-		}
-		ArrayList<Poker_Hands> firstcheck = new ArrayList<>();
-		wins.sort(Comparator.comparing(Poker_Hands::getResult));
-		firstcheck.add(wins.get(wins.size()-1));
-		wins.remove(wins.size()-1);
-		for(int i = wins.size()-1; i > -1; i--) {//check for ties
-			if(wins.get(i).result == firstcheck.get(0).result) {
-				firstcheck.add(wins.get(i));
-			}
-			else {
-				break;
-			}
-		}
-		if(wins.size() == 1) {
-			return wins;
-		}
-		else {
-			firstcheck.sort(Comparator.comparing(Poker_Hands::gethighrank));
-			ArrayList<Poker_Hands> secondcheck = new ArrayList<>();
-			secondcheck.add(firstcheck.get(firstcheck.size()-1));
-			firstcheck.remove(firstcheck.size()-1);
-			for(int i = firstcheck.size()-1; i > -1; i--) {//check for ties
-				if(firstcheck.get(i).highcard == secondcheck.get(0).highcard) {
-					secondcheck.add(firstcheck.get(i));
-				}
-				else {
-					break;
-				}
-			}
-			if(firstcheck.size() == 1 || firstcheck.get(0).secondhigh == null) {
-				return firstcheck;
-			}
-			else {
-				secondcheck.sort(Comparator.comparing(Poker_Hands::getsecondrank));;
-				ArrayList<Poker_Hands> thirdcheck = new ArrayList<>();
-				thirdcheck.add(secondcheck.get(secondcheck.size()-1));
-				secondcheck.remove(secondcheck.size()-1);
-				for(int i = secondcheck.size()-1; i > -1; i--) {
-					if(secondcheck.get(i).secondhigh == thirdcheck.get(0).secondhigh) {
-						thirdcheck.add(secondcheck.get(i));
-					}
-					else {
-						break;
-					}
-				}
-				return secondcheck;
-			}
-		}
-	}
-	/**
-     * determine_winner helper functions, checks for Four/Three of a kind, One/Two Pair, Full Houses, and high card if it can't find anything
-     * @return an int representing which player number won the game
-     */
-	private Poker_Hands check_other(ArrayList<Card> combined, int j) {
-		ArrayList<Card> pairone = new ArrayList<>();//there is 7 cards in the deck, so there can be up to 3 pairs when checking
-		ArrayList<Card> pairtwo = new ArrayList<>();
-		ArrayList<Card> pairthree = new ArrayList<>();
-		ArrayList<Card> compair = new ArrayList<>();
-		for(int i = 0; i < combined.size(); i++) {
-			if(i != combined.size()-1) {
-				if(combined.get(i).get_rank() == combined.get(i+1).get_rank()) {
-					if(pairone.isEmpty()) {
-						pairone.add(combined.get(i));
-						pairone.add(combined.get(i+1));
-						combined.remove(i);
-						combined.remove(i);
-						i -= 2;
-					}
-					else if(pairone.get(0).get_rank() == combined.get(i).get_rank()) {
-						combined.remove(i);
-						combined.remove(i);
-						return new Poker_Hands(winners.FOURKIND, pairone.get(0), combined.get(combined.size()-1), j);
-					}
-					else if(pairtwo.isEmpty()) {
-						pairtwo.add(combined.get(i));
-						pairtwo.add(combined.get(i+1));
-						combined.remove(i);
-						combined.remove(i);
-						i -= 2;
-					}
-					else if(pairtwo.get(0).get_rank() == combined.get(i).get_rank()) {
-						combined.remove(i);
-						combined.remove(i);
-						combined.add(pairone.get(0));
-						combined.sort(Comparator.comparing(Card::get_rank));//add the pairone pair back to check if it's the spare high card
-						return new Poker_Hands(winners.FOURKIND, pairtwo.get(0), combined.get(combined.size()-1), j);
-					}
-					else {
-						pairthree.add(combined.get(i));
-						pairthree.add(combined.get(i+1));
-						combined.remove(i);
-						combined.remove(i);
-						i -= 2;
-					}
-				}
-			}
-			if(!pairone.isEmpty()) {
-				if(combined.get(i).get_rank() == pairone.get(0).get_rank()) {
-					pairone.add(combined.get(i));
-					combined.remove(i);
-					i--;
-				}
-			}
-			if(!pairtwo.isEmpty()) {
-				if(combined.get(i).get_rank() == pairtwo.get(0).get_rank()) {
-					pairtwo.add(combined.get(i));
-					combined.remove(i);
-					i--;
-				}
-			}
-			if(!pairthree.isEmpty()) {
-				if(combined.get(i).get_rank() == pairthree.get(0).get_rank()) {
-					pairthree.add(combined.get(i));
-					combined.remove(i);
-					i--;
-				}
-			}
-		}
-		if(pairone.isEmpty()) {//no pairs at all found, return high card
-			return new Poker_Hands(winners.HIGH, combined.get(combined.size()-1), combined.get(combined.size()-2), j);
-		}
-		if(Math.max(Math.max(pairone.size(), pairtwo.size()), pairthree.size()) == 3) {//three of a kind, possible full house
-			if(pairtwo.isEmpty()) {//no other pairs, three of a kind
-				return new Poker_Hands(winners.THREEKIND, pairone.get(0), combined.get(combined.size()-1), j);
-			} //implicitly if this if statement fails then pairtwo isn't empty
-			else if(pairthree.isEmpty()) {//no other pair to compare with, full house
-				if(pairone.size() == 3) {
-					return new Poker_Hands(winners.FULLHOUSE, pairone.get(0), pairtwo.get(0), j);
-				}
-				else {
-					return new Poker_Hands(winners.FULLHOUSE, pairtwo.get(0), pairone.get(0), j);
-				}
-			}//same as before, this implicitly means pairthree isn't empty
-			else {
-				if(pairone.size() == 3) {
-					compair.add(pairtwo.get(0));
-					compair.add(pairthree.get(0));
-					compair.sort(Comparator.comparing(Card::get_rank));
-					return new Poker_Hands(winners.FULLHOUSE, pairone.get(0), compair.get(1), j);
-				}
-				else if(pairtwo.size() == 3) {
-					compair.add(pairone.get(0));
-					compair.add(pairthree.get(0));
-					compair.sort(Comparator.comparing(Card::get_rank));
-					return new Poker_Hands(winners.FULLHOUSE, pairtwo.get(0), compair.get(1), j);
-				}
-				else {
-					compair.add(pairone.get(0));
-					compair.add(pairtwo.get(0));
-					compair.sort(Comparator.comparing(Card::get_rank));
-					return new Poker_Hands(winners.FULLHOUSE, pairthree.get(0), compair.get(1), j);
-				}
-			}
-		}
-		if(pairtwo.isEmpty()) {//one pair
-			return new Poker_Hands(winners.ONEPAIR, pairone.get(0), combined.get(combined.size()-1), j);
-		}
-		else if(pairthree.isEmpty()) {
-			compair.add(pairone.get(0));
-			compair.add(pairtwo.get(0));
-			compair.sort(Comparator.comparing(Card::get_rank));
-			return new Poker_Hands(winners.TWOPAIR, compair.get(1), compair.get(0), j);
-		}
-		else {
-			compair.add(pairone.get(0));
-			compair.add(pairtwo.get(0));
-			compair.add(pairthree.get(0));
-			compair.sort(Comparator.comparing(Card::get_rank));
-			return new Poker_Hands(winners.TWOPAIR, compair.get(2), compair.get(1), j);
-		}
-		
-	}
-	/**
-     * determine_winner helper functions, checks for flushes
-     * @return an ArrayList of cards, empty if a flush was not found, sorted and filled with the flush cards if it was found
-     */
-	private ArrayList<Card> check_flush(ArrayList<Card> hand) {
-		ArrayList<Card> cards = new ArrayList<>();
-		for(int i = 0; i < hand.size(); i++){//iirc lists are passed by reference so we create and copy a new list so as not to edit the parameter
-			cards.add(hand.get(i));
-		}
-		ArrayList<Card> flusher = new ArrayList<>();
-		cards.sort(Comparator.comparing(Card::get_suit)); //sort by suit instead
-		Suit suit = cards.get(3).get_suit(); //I may be incorrect, but my logic is in any combination of 7 cards flushes where the cards are organized by suit, card 3 MUST be a part of the flush
-		for(int i = 0; i < cards.size(); i++) {
-			if(cards.get(i).get_suit() == suit) {
-				flusher.add(cards.get(i));
-			}
-			else{
-			cards.remove(i);
-			i--;
-			}
-		}
-		if(flusher.size() < 5){
-			flusher.clear();
-		}
-		else{
-			flusher.sort(Comparator.comparing(Card::get_rank));
-		}
-		return flusher;
-	}
-	/**
-     * determine_winner helper functions, checks for straights
-     * @return the list of cards that create the straight, in ascending order
-     */
-	private ArrayList<Card> check_straight(ArrayList<Card> combined) {
-		ArrayList<Card> straighter = new ArrayList<>();//keeps track of consecutive cards
-		boolean consecutive = false;
-		for(Card.Rank rank : Rank.values()) {//check for a straight
-			for(int i = 0; i < combined.size(); i++) {
-				if(combined.get(i).get_rank() == rank) {
-					if(i < combined.size() -1) {
-						if(combined.get(i).get_rank() == combined.get(i+1).get_rank()) {
-							//if you have 2 cards with the same rank and a card is already in the flusher, then prioritize the suit being built (to correctly build straight flushes) and ditch the other one
-							if(i < combined.size() -2) {
-								if(combined.get(i).get_suit() == combined.get(i+2).get_suit()) {
-									straighter.add(combined.get(i));
-									straighter.remove(i+1);
-								}
-								else {
-									straighter.add(combined.get(i+1));
-									straighter.remove(i);
-								}
-							}
-							if(!straighter.isEmpty()) {
-								if(combined.get(i).get_suit() == straighter.get(0).get_suit()) {
-									straighter.add(combined.get(i));
-									straighter.remove(i+1);
-								}
-								else {
-									straighter.add(combined.get(i+1));
-									straighter.remove(i);
-								}
-							}
-							else {
-								straighter.add(combined.get(i));
-								straighter.remove(i+1);
-							}
-						}
-					}
-					consecutive = true;
-					break;
-				}
-			}
-			if(!consecutive) {
-				straighter.clear();
-			}
-			else {
-				if(straighter.size() == 5) {
-						return straighter;
-				}
-				consecutive = false;
-			}
-		}
-		return straighter;
-		
-	}
-	/**
-     * get player input, will also update the game state depending on their actions
-     */
-	private void getPlayerInput() {
-		try {
-			sendPlayer("token\n", currentplayer);
-			String response = inlist.get(currentplayer).readLine();
-			if(response.equalsIgnoreCase("Check")) {
-				if(currentbets.get(currentplayer) >= currentbet) {
-					sendAllPlayers("Player " + currentplayer + " has checked!\n");
-					incrementplayer();
-				}
-				else {
-					sendPlayer("Someone else has opened! You must call, fold, or raise!\n", currentplayer);
-				}
-			}
-			else if(response.contains("bet") || response.contains("Bet")) {
-				try {
-					int amount = Integer.parseInt(response.split(" ")[1]);
-					if(amount <= 0) {
-						throw new NumberFormatException();
-					}
-					else if(amount > players.get(currentplayer).view_funds()) {
-						sendPlayer("You don't have the funds to do that! Please Try Again.\n", currentplayer);
-						getPlayerInput();
-					}
-					else {
-						players.get(currentplayer).deposit_funds(-amount);
-						sendAllPlayers("Player " + currentplayer + " has bet $" + amount + "!\n" );
-						lastactive = currentplayer;
-						finalturn = false;
-						currentbet = amount;
-						pot += amount;
-						incrementplayer();
-					}
-				}
-				catch(ArrayIndexOutOfBoundsException e) {
-					sendPlayer("Error: no bet amount entered! Please Try Again.\n", currentplayer);
-					getPlayerInput();
-				}
-				catch(NumberFormatException e) {
-					sendPlayer("Error: Please enter a valid number for a bet! Please Try Again.\n", currentplayer);
-					getPlayerInput();
-				}
-			}
-			else if(response.equalsIgnoreCase("fold")) {
-				activePlayers[currentplayer] = false;
-				sendAllPlayers("Player " + currentplayer + " has folded!\n");
-				incrementplayer();
-			}
-			else if(response.equalsIgnoreCase("call")) {
-				players.get(currentplayer).deposit_funds(-currentbet);
-				pot += currentbet;
-				sendAllPlayers("Player " + currentplayer + " has called!\n");
-				incrementplayer();
-			}
-			else if(response.equalsIgnoreCase("funds")) {
-				sendPlayer("You currently have $" + players.get(currentplayer).view_funds() + "\n", currentplayer);
-				getPlayerInput();
-			}
-			else if(response.equalsIgnoreCase("cards")) {
-				sendPlayer("Your cards are: " + players.get(currentplayer).view_cards() + "\nThe cards on the table are: ", currentplayer);
-				for(int i = 0; i < tablecards.size(); i++) {
-					sendPlayer(tablecards.get(i).toString() + " ", i);
-				}
-				sendPlayer("\n", currentplayer);
-				getPlayerInput();
-			}
-			else {
-				sendPlayer("Invalid command! Please Try Again!\n", currentplayer);
-				getPlayerInput();
-			}
-		}catch(SocketTimeoutException e) {//player timed out
-			
-		} 
-		catch (IOException e) {
-			e.printStackTrace();
-		} 
-		
-	}
-	/**
-	 * increments the current player, 'flips' it back to 0 when needed
-	 */
-	private void incrementplayer() {
-		currentplayer++;
-		if(currentplayer == psocket.size()) {
-			currentplayer = 0;
-		}
-	}
-	/**
-	 * tries to send a message to all players that exist
-	 */
-	private void sendAllPlayers(String string) {
-		for(int i = 0; i < psocket.size(); i++) {
-			try {
-				outlist.get(i).write(string);
-				outlist.get(i).flush();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-		
-	}
-	private void sendPlayer(String string, int playernumber) {
-		try {
-			outlist.get(playernumber).write(string);
-			outlist.get(playernumber).flush();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
-	private void replicateGameState() {
-		// logic to update game state
-		// After updating variables such as pot, currentTurn, player bets, etc.
-		GameState currentState = new GameState(gameId, players, pot, currentturn, tablecards);
-		ReplicationManager.getInstance(true).sendStateUpdate(currentState);
 	}
 	
+    // Resets current bet values.
+    private void clearBets() {
+        currentbet = 0;
+        for (int i = 0; i < currentBets.size(); i++) {
+            currentBets.set(i, 0);
+        }
+    }
+
+    // Gets input from the current player.
+    // Note: This method no longer increments currentplayer—incrementing is handled in the betting loop.
+    private void getPlayerInput() {
+        try {
+            sendPlayer("token\n", currentplayer);
+            String response = connections.get(currentplayer).readMessage();
+            if (response.equalsIgnoreCase("check")) {
+                if (currentBets.get(currentplayer) >= currentbet) {
+                    sendAllPlayers("Player " + currentplayer + " checks.\n");
+                } else {
+                    sendPlayer("You must call, fold, or raise!\n", currentplayer);
+                    getPlayerInput();
+                }
+            } else if (response.toLowerCase().startsWith("bet")) {
+                try {
+                    int amount = Integer.parseInt(response.split(" ")[1]);
+                    if (amount <= 0 || amount > players.get(currentplayer).view_funds()) {
+                        sendPlayer("Invalid bet amount. Try again.\n", currentplayer);
+                        getPlayerInput();
+                    } else {
+                        players.get(currentplayer).deposit_funds(-amount);
+                        sendAllPlayers("Player " + currentplayer + " bets $" + amount + ".\n");
+                        currentbet = amount;
+                        pot += amount;
+                        // Update lastActive to current player since they made the bet.
+                        lastActive = currentplayer;
+                    }
+                } catch (Exception e) {
+                    sendPlayer("Error: Invalid bet command. Try again.\n", currentplayer);
+                    getPlayerInput();
+                }
+            } else if (response.equalsIgnoreCase("fold")) {
+                activePlayers[currentplayer] = false;
+                sendAllPlayers("Player " + currentplayer + " folds.\n");
+            } else if (response.equalsIgnoreCase("call")) {
+                if (currentbet > players.get(currentplayer).view_funds()) {
+                    sendPlayer("Insufficient funds to call. You must fold.\n", currentplayer);
+                    activePlayers[currentplayer] = false;
+                } else {
+                    players.get(currentplayer).deposit_funds(-currentbet);
+                    pot += currentbet;
+                    sendAllPlayers("Player " + currentplayer + " calls.\n");
+                }
+            } else if (response.equalsIgnoreCase("funds")) {
+                sendPlayer("Your funds: $" + players.get(currentplayer).view_funds() + "\n", currentplayer);
+                getPlayerInput();
+            } else if (response.equalsIgnoreCase("cards")) {
+                sendPlayer("Your cards: " + players.get(currentplayer).view_cards() + "\n" +
+                           "Table cards: " + tablecards.toString() + "\n", currentplayer);
+                getPlayerInput();
+            } else {
+                sendPlayer("Invalid command! Please try again.\n", currentplayer);
+                getPlayerInput();
+            }
+        } catch (SocketTimeoutException e) {
+            // Handle timeout if needed.
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Advances to the next player.
+    private void incrementPlayer() {
+        currentplayer = (currentplayer + 1) % connections.size();
+    }
+
+    // Sends a message to all players.
+    private void sendAllPlayers(String message) {
+        for (PlayerConnection pc : connections) {
+            try {
+                pc.sendMessage(message);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    // Sends a message to a specific player.
+    private void sendPlayer(String message, int index) {
+        try {
+            connections.get(index).sendMessage(message);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Replicates the game state.
+    private void replicateGameState() {
+        GameState currentState = new GameState(gameId, players, pot, currentTurn, tablecards);
+        ReplicationManager.getInstance(true).sendStateUpdate(currentState);
+    }
+
+    // The methods for determining the winner remain unchanged.
+    private ArrayList<Poker_Hands> determine_winner() {
+        // ... (existing logic remains unchanged)
+        ArrayList<Poker_Hands> wins = new ArrayList<>();
+        ArrayList<ArrayList<Card>> hands = new ArrayList<>();
+        for (int i = 0; i < players.size(); i++) {
+            hands.add(players.get(i).show_all_cards());
+        }
+        ArrayList<Card> combined = new ArrayList<>();
+        for (int j = 0; j < hands.size(); j++) {
+            for (int i = 0; i < tablecards.size(); i++) {
+                combined.add(tablecards.get(i));
+            }
+            combined.add(hands.get(j).get(0));
+            combined.add(hands.get(j).get(1));
+            combined.sort(Comparator.comparing(Card::get_rank));
+            ArrayList<Card> straight = check_straight(combined);
+            if (!straight.isEmpty()) {
+                if (!check_flush(straight).isEmpty()) {
+                    wins.add(new Poker_Hands(winners.STRAIGHTFLUSH, straight.get(straight.size()-1), j));
+                    combined.clear();
+                    continue;
+                }
+            }
+            wins.add(check_other(combined, j));
+            if (wins.get(j).result == winners.FOURKIND || wins.get(j).result == winners.FULLHOUSE) {
+                combined.clear();
+                continue;
+            } else {
+                if (!straight.isEmpty()) {
+                    wins.set(j, new Poker_Hands(winners.STRAIGHT, straight.get(0), j));
+                    combined.clear();
+                    continue;
+                } else if (!check_flush(combined).isEmpty()) {
+                    ArrayList<Card> flusher = check_flush(combined);
+                    wins.set(j, new Poker_Hands(winners.FLUSH, flusher.get(flusher.size()-1), j));
+                    combined.clear();
+                    continue;
+                } else {
+                    combined.clear();
+                    continue;
+                }
+            }
+        }
+        ArrayList<Poker_Hands> firstcheck = new ArrayList<>();
+        wins.sort(Comparator.comparing(Poker_Hands::getResult));
+        firstcheck.add(wins.get(wins.size()-1));
+        wins.remove(wins.size()-1);
+        for (int i = wins.size()-1; i > -1; i--) {
+            if (wins.get(i).result == firstcheck.get(0).result) {
+                firstcheck.add(wins.get(i));
+            } else {
+                break;
+            }
+        }
+        if (wins.size() == 1) {
+            return wins;
+        } else {
+            firstcheck.sort(Comparator.comparing(Poker_Hands::gethighrank));
+            ArrayList<Poker_Hands> secondcheck = new ArrayList<>();
+            secondcheck.add(firstcheck.get(firstcheck.size()-1));
+            firstcheck.remove(firstcheck.size()-1);
+            for (int i = firstcheck.size()-1; i > -1; i--) {
+                if (firstcheck.get(i).highcard == secondcheck.get(0).highcard) {
+                    secondcheck.add(firstcheck.get(i));
+                } else {
+                    break;
+                }
+            }
+            if (firstcheck.size() == 1 || firstcheck.get(0).secondhigh == null) {
+                return firstcheck;
+            } else {
+                secondcheck.sort(Comparator.comparing(Poker_Hands::getsecondrank));
+                ArrayList<Poker_Hands> thirdcheck = new ArrayList<>();
+                thirdcheck.add(secondcheck.get(secondcheck.size()-1));
+                secondcheck.remove(secondcheck.size()-1);
+                for (int i = secondcheck.size()-1; i > -1; i--) {
+                    if (secondcheck.get(i).secondhigh == thirdcheck.get(0).secondhigh) {
+                        thirdcheck.add(secondcheck.get(i));
+                    } else {
+                        break;
+                    }
+                }
+                return secondcheck;
+            }
+        }
+    }
+
+    private Poker_Hands check_other(ArrayList<Card> combined, int j) {
+        // ... (existing logic remains unchanged)
+        ArrayList<Card> pairone = new ArrayList<>();
+        ArrayList<Card> pairtwo = new ArrayList<>();
+        ArrayList<Card> pairthree = new ArrayList<>();
+        ArrayList<Card> compair = new ArrayList<>();
+        for (int i = 0; i < combined.size(); i++) {
+            if (i != combined.size()-1) {
+                if (combined.get(i).get_rank() == combined.get(i+1).get_rank()) {
+                    if (pairone.isEmpty()) {
+                        pairone.add(combined.get(i));
+                        pairone.add(combined.get(i+1));
+                        combined.remove(i);
+                        combined.remove(i);
+                        i -= 2;
+                    } else if (pairone.get(0).get_rank() == combined.get(i).get_rank()) {
+                        combined.remove(i);
+                        combined.remove(i);
+                        return new Poker_Hands(winners.FOURKIND, pairone.get(0), combined.get(combined.size()-1), j);
+                    } else if (pairtwo.isEmpty()) {
+                        pairtwo.add(combined.get(i));
+                        pairtwo.add(combined.get(i+1));
+                        combined.remove(i);
+                        combined.remove(i);
+                        i -= 2;
+                    } else if (pairtwo.get(0).get_rank() == combined.get(i).get_rank()) {
+                        combined.remove(i);
+                        combined.remove(i);
+                        combined.add(pairone.get(0));
+                        combined.sort(Comparator.comparing(Card::get_rank));
+                        return new Poker_Hands(winners.FOURKIND, pairtwo.get(0), combined.get(combined.size()-1), j);
+                    } else {
+                        pairthree.add(combined.get(i));
+                        pairthree.add(combined.get(i+1));
+                        combined.remove(i);
+                        combined.remove(i);
+                        i -= 2;
+                    }
+                }
+            }
+            if (!pairone.isEmpty()) {
+                if (combined.get(i).get_rank() == pairone.get(0).get_rank()) {
+                    pairone.add(combined.get(i));
+                    combined.remove(i);
+                    i--;
+                }
+            }
+            if (!pairtwo.isEmpty()) {
+                if (combined.get(i).get_rank() == pairtwo.get(0).get_rank()) {
+                    pairtwo.add(combined.get(i));
+                    combined.remove(i);
+                    i--;
+                }
+            }
+            if (!pairthree.isEmpty()) {
+                if (combined.get(i).get_rank() == pairthree.get(0).get_rank()) {
+                    pairthree.add(combined.get(i));
+                    combined.remove(i);
+                    i--;
+                }
+            }
+        }
+        if (pairone.isEmpty()) {
+            return new Poker_Hands(winners.HIGH, combined.get(combined.size()-1), combined.get(combined.size()-2), j);
+        }
+        if (Math.max(Math.max(pairone.size(), pairtwo.size()), pairthree.size()) == 3) {
+            if (pairtwo.isEmpty()) {
+                return new Poker_Hands(winners.THREEKIND, pairone.get(0), combined.get(combined.size()-1), j);
+            } else if (pairthree.isEmpty()) {
+                if (pairone.size() == 3) {
+                    return new Poker_Hands(winners.FULLHOUSE, pairone.get(0), pairtwo.get(0), j);
+                } else {
+                    return new Poker_Hands(winners.FULLHOUSE, pairtwo.get(0), pairone.get(0), j);
+                }
+            } else {
+                if (pairone.size() == 3) {
+                    compair.add(pairtwo.get(0));
+                    compair.add(pairthree.get(0));
+                    compair.sort(Comparator.comparing(Card::get_rank));
+                    return new Poker_Hands(winners.FULLHOUSE, pairone.get(0), compair.get(1), j);
+                } else if (pairtwo.size() == 3) {
+                    compair.add(pairone.get(0));
+                    compair.add(pairthree.get(0));
+                    compair.sort(Comparator.comparing(Card::get_rank));
+                    return new Poker_Hands(winners.FULLHOUSE, pairtwo.get(0), compair.get(1), j);
+                } else {
+                    compair.add(pairone.get(0));
+                    compair.add(pairtwo.get(0));
+                    compair.sort(Comparator.comparing(Card::get_rank));
+                    return new Poker_Hands(winners.FULLHOUSE, pairthree.get(0), compair.get(1), j);
+                }
+            }
+        }
+        if (pairtwo.isEmpty()) {
+            return new Poker_Hands(winners.ONEPAIR, pairone.get(0), combined.get(combined.size()-1), j);
+        } else if (pairthree.isEmpty()) {
+            compair.add(pairone.get(0));
+            compair.add(pairtwo.get(0));
+            compair.sort(Comparator.comparing(Card::get_rank));
+            return new Poker_Hands(winners.TWOPAIR, compair.get(1), compair.get(0), j);
+        } else {
+            compair.add(pairone.get(0));
+            compair.add(pairtwo.get(0));
+            compair.add(pairthree.get(0));
+            compair.sort(Comparator.comparing(Card::get_rank));
+            return new Poker_Hands(winners.TWOPAIR, compair.get(2), compair.get(1), j);
+        }
+    }
+
+    private ArrayList<Card> check_flush(ArrayList<Card> hand) {
+        ArrayList<Card> cards = new ArrayList<>();
+        for (int i = 0; i < hand.size(); i++) {
+            cards.add(hand.get(i));
+        }
+        ArrayList<Card> flusher = new ArrayList<>();
+        cards.sort(Comparator.comparing(Card::get_suit));
+        Suit suit = cards.get(3).get_suit();
+        for (int i = 0; i < cards.size(); i++) {
+            if (cards.get(i).get_suit() == suit) {
+                flusher.add(cards.get(i));
+            } else {
+                cards.remove(i);
+                i--;
+            }
+        }
+        if (flusher.size() < 5) {
+            flusher.clear();
+        } else {
+            flusher.sort(Comparator.comparing(Card::get_rank));
+        }
+        return flusher;
+    }
+
+    private ArrayList<Card> check_straight(ArrayList<Card> combined) {
+        ArrayList<Card> straighter = new ArrayList<>();
+        boolean consecutive = false;
+        for (Card.Rank rank : Card.Rank.values()) {
+            for (int i = 0; i < combined.size(); i++) {
+                if (combined.get(i).get_rank() == rank) {
+                    if (i < combined.size() - 1) {
+                        if (combined.get(i).get_rank() == combined.get(i+1).get_rank()) {
+                            if (i < combined.size() - 2) {
+                                if (combined.get(i).get_suit() == combined.get(i+2).get_suit()) {
+                                    straighter.add(combined.get(i));
+                                    straighter.remove(i+1);
+                                } else {
+                                    straighter.add(combined.get(i+1));
+                                    straighter.remove(i);
+                                }
+                            }
+                            if (!straighter.isEmpty()) {
+                                if (combined.get(i).get_suit() == straighter.get(0).get_suit()) {
+                                    straighter.add(combined.get(i));
+                                    straighter.remove(i+1);
+                                } else {
+                                    straighter.add(combined.get(i+1));
+                                    straighter.remove(i);
+                                }
+                            } else {
+                                straighter.add(combined.get(i));
+                                straighter.remove(i+1);
+                            }
+                        }
+                    }
+                    consecutive = true;
+                    break;
+                }
+            }
+            if (!consecutive) {
+                straighter.clear();
+            } else {
+                if (straighter.size() == 5) {
+                    return straighter;
+                }
+                consecutive = false;
+            }
+        }
+        return straighter;
+    }
 }

@@ -124,13 +124,17 @@ public class ReplicationManager {
         }
     }
     
-    // Updates the backup's local game state by calling ServerTable.updateState() for the given game.
-    private void updateLocalGameState(GameState state) {
+       // Updates the backup's local game state by calling ServerTable.updateState() for the given game.
+       private void updateLocalGameState(GameState state) {
         ServerTable currentTable = ServerTable.getInstance(state.getGameId());
         if (currentTable != null) {
             currentTable.updateState(state);
         } else {
-            System.err.println("No active game found for game ID " + state.getGameId() + " on backup.");
+            System.err.println("No active game found for game ID " + state.getGameId() + " on backup. Creating new game instance from replication state.");
+            // Create a new ServerTable instance with an empty list of PlayerConnections.
+            ArrayList<shared.PlayerConnection> dummyConnections = new ArrayList<>();
+            ServerTable newTable = new ServerTable(state.getGameId(), dummyConnections);
+            newTable.updateState(state);
         }
     }
     

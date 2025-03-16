@@ -72,7 +72,7 @@ public class ClientMain {
             
         }
         
-        return new Player(playerName, depositAmount, null);
+        return new Player(playerName, depositAmount);
     }
 
     /**
