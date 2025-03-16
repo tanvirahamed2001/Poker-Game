@@ -8,7 +8,7 @@ import java.io.*;
 import java.net.*;
 import java.util.Scanner;
 import shared.Player;
-import shared.communication_objects.GameList;
+import shared.communication_objects.*;
 
 public class ClientMain {
     private static final String SERVER_ADDRESS = "localhost"; // Place blocker where we will put IP address UofC systems to keep it consistent
@@ -139,18 +139,23 @@ public class ClientMain {
     }
 
     private static void sendMessage(String message) {
+
     }
 
+    /**
+     * Handles receiving a GAME_LIST Command from the server
+     * Proceeds to build a GAME_CHOICE Command and send to the server
+     */
     private static void handleGameSelection(Scanner scanner) {
 
         System.out.println("Waiting for available games...");
-        
+
         try {
             
-            Object serverResponse = in.readObject();
+            Command serverResponse = (Command)in.readObject();
 
-            if(serverResponse instanceof GameList) {
-                GameList games = (GameList) serverResponse;
+            if(serverResponse.getType() == Command.Type.GAMES_LIST) {
+                GameList games = (GameList) serverResponse.getPayload();
                 for(String game : games.getGames()) {
                     System.out.print(game);
                 }
@@ -182,6 +187,7 @@ public class ClientMain {
             System.err.println("Error closing connection: " + e.getMessage());
         }
     }
+
     private static void playGame(Scanner scanner) {
     	String response = "";
     	while(!response.equals("Goodbye!")) {
