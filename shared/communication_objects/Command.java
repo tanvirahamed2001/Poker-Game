@@ -4,7 +4,7 @@ import java.io.Serializable;
 
 public class Command implements Serializable {
 
-    public enum Type {GAMES_LIST, PLAYER_INFO, GAME_COMMAND, GAME_CHOICE, MESSAGE}
+    public enum Type {GAMES_LIST, PLAYER_INFO, TURN_CHOICE, GAME_CHOICE, MESSAGE}
 
     private Type type;
     private Object payload;

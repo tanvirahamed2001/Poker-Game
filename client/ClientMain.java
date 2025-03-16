@@ -193,7 +193,7 @@ public class ClientMain {
 
         } catch (ClassNotFoundException e2) {
 
-            System.err.println("Error with game list object " + e2.getMessage());
+            System.err.println("Error with game list object: " + e2.getMessage());
 
         }
     }
