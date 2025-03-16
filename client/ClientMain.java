@@ -138,8 +138,16 @@ public class ClientMain {
         }
     }
 
-    private static void sendMessage(String message) {
-
+    /**
+     * Handles sending commands to server
+     */
+    private static void sendCommand(Command cmd) {
+        try {
+            out.writeObject(cmd);
+            out.flush();
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -163,8 +171,19 @@ public class ClientMain {
 
             // Get user input for game selection
             System.out.print("Enter game number or type 'new': ");
-            String choice = scanner.nextLine().trim();
-            sendMessage(choice);
+
+            GameChoice gc;
+            
+            if(scanner.hasNextInt()) {
+                gc = new GameChoice(GameChoice.Choice.JOIN);
+                gc.setId(scanner.nextInt());
+            } else {
+                gc = new GameChoice(GameChoice.Choice.NEW);
+            }
+
+            // build the command
+            Command choice = new Command(Command.Type.GAME_CHOICE, gc);
+            sendCommand(choice);
 
         } catch (IOException e) {
 
