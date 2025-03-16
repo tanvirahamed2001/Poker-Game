@@ -12,7 +12,7 @@ public class GameState implements Serializable {
     private ArrayList<Card> tableCards;
 
     public GameState(int gameId, ArrayList<Player> players, int pot, int currentTurn, ArrayList<Card> tableCards) {
-       this.gameId = gameId;
+        this.gameId = gameId;
         this.players = players;
         this.pot = pot;
         this.currentTurn = currentTurn;
@@ -37,5 +37,13 @@ public class GameState implements Serializable {
 
     public ArrayList<Card> getTableCards() {
         return tableCards;
+    }
+
+    public void updateGameState(int gameId,  ArrayList<Player> players, int pot, int currentTurn, ArrayList<Card> tablecards) {
+        this.gameId = gameId;
+        this.players = players;
+        this.pot = pot;
+        this.currentTurn = currentTurn;
+        this.tableCards = tablecards;
     }
 }

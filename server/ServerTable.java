@@ -48,12 +48,13 @@ public class ServerTable implements Runnable {
     private int currentbet, lastActive, currentplayer, pot, currentTurn;
     private ArrayList<Integer> currentBets;
     private boolean activePlayers[];
-	GameState currentState = new GameState(gameId, players, pot, currentTurn, tablecards);
+	GameState currentState;
     
     // Constructor accepts a list of PlayerConnection objects.
     public ServerTable(int gameId, ArrayList<PlayerConnection> connections) {
         this.gameId = gameId;
         this.connections = connections;
+        this.currentState = new GameState(gameId, players, pot, currentTurn, tablecards);
         // Extract players from the connections.
         this.players = new ArrayList<>();
         for (PlayerConnection pc : connections) {
@@ -109,7 +110,7 @@ public class ServerTable implements Runnable {
 		// Main game loop: for each street until showdown.
 		while (currentTurn < 5) {
 			// Start a betting round.
-			
+			currentState.updateGameState(gameId, players, pot, currentTurn, tablecards);
 			ReplicationManager.getInstance(true).sendStateUpdate(currentState);
 			int bettingStart = currentplayer; // record who started the round
 			boolean roundCompleted = false;
