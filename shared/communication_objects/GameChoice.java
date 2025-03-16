@@ -18,7 +18,7 @@ public class GameChoice implements Serializable{
     }
 
     public int getId() {
-        return tableId;
+        return this.tableId;
     }
 
     public Choice getChoice() {
