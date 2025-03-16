@@ -7,14 +7,17 @@ import shared.Player;
 public class PlayerConnection {
     private Player player;
     private Socket socket;
-    private BufferedReader in;
-    private BufferedWriter out;
+    private ObjectInputStream in;
+    private ObjectOutputStream out;
 
     public PlayerConnection(Player player, Socket socket) throws IOException {
         this.player = player;
         this.socket = socket;
-        this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        this.out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+        // Create ObjectOutputStream first and flush its header.
+        this.out = new ObjectOutputStream(socket.getOutputStream());
+        this.out.flush();
+        // Then create ObjectInputStream.
+        this.in = new ObjectInputStream(socket.getInputStream());
     }
     
     public Player getPlayer() {
@@ -25,21 +28,23 @@ public class PlayerConnection {
         return socket;
     }
     
-    public BufferedReader getReader() {
+    public ObjectInputStream getReader() {
         return in;
     }
     
-    public BufferedWriter getWriter() {
+    public ObjectOutputStream getWriter() {
         return out;
     }
     
-    public void sendMessage(String message) throws IOException {
-        out.write(message);
+    // Now send a message as an object (e.g., a String or a Command object).
+    public void sendMessage(Object message) throws IOException {
+        out.writeObject(message);
         out.flush();
     }
     
-    public String readMessage() throws IOException {
-        return in.readLine();
+    // Read a message and return it as an Object.
+    public Object readMessage() throws IOException, ClassNotFoundException {
+        return in.readObject();
     }
     
     public void close() throws IOException {
