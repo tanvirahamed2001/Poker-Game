@@ -75,3 +75,24 @@ public class Player implements Serializable {
         return this.funds;
     }
 
+    /**
+     * Deposits funds into the player's account.
+     * @param amount The amount to deposit.
+     */
+    public void deposit_funds(int amount) {
+        this.funds += amount;
+    }
+
+    /**
+     * Bets a specific amount and deducts it from the player's funds.
+     * @param bet The amount to bet.
+     * @return The amount bet if successful, otherwise 0.
+     */
+    public int bet_amount(int bet) {
+        if (bet <= this.funds && bet != 0) {
+            this.funds -= bet; // Deduct the bet amount from funds
+            return bet;
+        }
+        return 0; // Indicates an invalid bet
+    }
+}
