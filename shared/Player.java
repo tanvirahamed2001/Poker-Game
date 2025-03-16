@@ -1,100 +1,77 @@
 package shared;
 
 import java.io.Serializable;
-import java.net.Socket;
 import java.util.ArrayList;
 import shared.card_based.Card;
 
-//TODO: Rewrite player so it does not house a socket so we can send it over a network to replicate data to the backup servers (PLEASE REMOVE THIS TODO ONCE FINISHED)
-
+// Player class no longer contains a Socket, making it serializable for network replication.
 public class Player implements Serializable {
+
+    private static final long serialVersionUID = 1L; // Required for serialization
 
     private String name;
     private int funds;
     private ArrayList<Card> hand;
-    public Socket socket;
 
     /**
      * Creates a new Player object from client information.
-     * @param name
-     * @param funds
+     * @param name The name of the player.
+     * @param funds The initial funds of the player.
      */
-    public Player(String name, int funds, Socket socket) {
+    public Player(String name, int funds) {
         this.name = name;
         this.funds = funds;
-        hand = new ArrayList<>();
-        this.socket = socket;
+        this.hand = new ArrayList<>();
     }
 
     /**
-     * Gets Player name
-     * @return
+     * Gets the player's name.
+     * @return The name of the player.
      */
     public String get_name() {
         return this.name;
     }
 
     /**
-     * Adds a new card to the players hand
-     * @param card
+     * Adds a new card to the player's hand.
+     * @param card The card to add.
      */
     public void new_card(Card card) {
         hand.add(card);
     }
 
     /**
-     * Player side for viewing cards. Prints the toString()
+     * Returns a string representation of the player's hand.
+     * @return A string containing all cards in the player's hand.
      */
     public String view_cards() {
-    	String string = "";
-        for(Card c : hand) {
-            string += c.toString() + " ";
+        StringBuilder string = new StringBuilder();
+        for (Card c : hand) {
+            string.append(c.toString()).append(" ");
         }
-        return string;
+        return string.toString();
     }
 
     /**
-     * Shows all the current cards to who ever. Not very safe. Fix later?
-     * @return
+     * Returns the player's entire hand of cards.
+     * @return An ArrayList of cards in the player's hand.
      */
     public ArrayList<Card> show_all_cards() {
         return hand;
     }
+
     /**
-     * remove all cards from the players' hand
+     * Removes all cards from the player's hand.
      */
     public void clear_hand() {
-    	hand.clear();
+        hand.clear();
     }
 
     /**
-     * Get Player funds
-     * @return
+     * Gets the player's current funds.
+     * @return The player's funds.
      */
     public int view_funds() {
         return this.funds;
     }
 
-    /**
-     * Player deposits more funds
-     * @param amount
-     */
-    public void deposit_funds(int amount) {
-        this.funds += amount;
-    }
-
-    /**
-     * Bets a specific amount and takes it out of the Players amount
-     * @param bet
-     * @return
-     */
-    public int bet_amount(int bet) {
-        if(bet <= this.funds && bet != 0) {
-            this.funds = bet;
-            return bet;
-        }
-        return 0;
-        //TODO: Error out with something (PLEASE REMOVE THIS TODO ONCE FINISHED)
-    }
-
-}
