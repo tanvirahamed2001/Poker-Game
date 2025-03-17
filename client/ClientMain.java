@@ -70,8 +70,10 @@ public class ClientMain {
         	}
             
         }
+
+        Player player = new Player(playerName, depositAmount);
         
-        return new Player(playerName, depositAmount);
+        return player;
     }
 
     /**
