@@ -112,6 +112,7 @@ public class ClientMain {
         try {
             socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
             out = new ObjectOutputStream(socket.getOutputStream());
+            in = new ObjectInputStream(socket.getInputStream());
             return true;
         } catch (IOException e) {
             try{
@@ -206,6 +207,7 @@ public class ClientMain {
     	    Command serverResponse = (Command)in.readObject();
 
             while(serverResponse.getType() != Command.Type.GAME_OVER) {
+
                 socket.setSoTimeout(600000);
             
                 if(serverResponse.getType() == Command.Type.TURN_TOKEN) {
@@ -252,7 +254,9 @@ public class ClientMain {
                 }
             }
         } catch (Exception e) {
+
             e.printStackTrace();
+
         }
     }
 }
