@@ -10,13 +10,13 @@ import java.util.ArrayList;
 
 public class GameList implements Serializable {
 
-    ArrayList<String> gameList;
+    String gameList;
 
-    public GameList(ArrayList<String> games) {
+    public GameList(String games) {
         this.gameList = games;
     }
 
-    public ArrayList<String> getGames() {
+    public String getGames() {
         return this.gameList;
     }
     

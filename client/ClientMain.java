@@ -158,9 +158,7 @@ public class ClientMain {
             // check if the response is of type GAMES_LIST
             if(serverResponse.getType() == Command.Type.GAMES_LIST) {
                 GameList games = (GameList) serverResponse.getPayload();
-                for(String game : games.getGames()) {
-                    System.out.print(game);
-                }
+                System.out.println(games.getGames());
             }
 
             // create the game choice from the player
@@ -177,6 +175,8 @@ public class ClientMain {
 
             // send the command
             sendCommand(Command.Type.GAME_CHOICE, gc);
+
+            Command cmd = (Command)in.readObject();
 
         } catch (IOException e) {
 

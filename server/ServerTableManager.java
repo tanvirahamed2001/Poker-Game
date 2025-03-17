@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.ArrayList;
 import shared.Player;
 import shared.PlayerConnection;
+import shared.communication_objects.*;
 
 public class ServerTableManager implements Runnable {
     private PlayerConnection connection;
@@ -33,29 +34,35 @@ public class ServerTableManager implements Runnable {
     private int getInput() {
         try {
             String message = "Games Available:\n";
-            String response;
+            Command response;
             Integer[] keys = games.keySet().toArray(new Integer[]{});
             for (int i = 0; i < games.size(); i++) {
                 message += "Game " + keys[i] + ": " + games.get(keys[i]).size() + "/" 
                            + ServerMain.maxplayers + " Players\n";
             }
+
             message += "Please input the game number you would like to join, or type 'new' to create a new game\nDone\n";
-            connection.sendMessage(message);
-            response = (String) connection.readMessage();
+
+            connection.sendCommand(Command.Type.GAMES_LIST, new GameList(message));
+
+            response = (Command) connection.readMessage();
+
+            GameChoice gc = (GameChoice) response.getPayload();
             
-            try {
-                int table = Integer.parseInt(response);
-                return table;
-            } catch (NumberFormatException e) {
-                if(response.equalsIgnoreCase("new")) {
-                    message = "Started new table, waiting for another player!\n";
-                    connection.sendMessage(message);
-                    return 0;
-                } else {
-                    connection.sendMessage("Invalid Input! Please Try Again\nDone\n");
-                    return getInput();
-                }
+            if(gc.getChoice() == GameChoice.Choice.NEW) {
+
+                Message msg = new Message("You have created a new table! Waiting for players...\n");
+                connection.sendCommand(Command.Type.MESSAGE, msg);
+                return 0;
+
+            } else if (gc.getChoice() == GameChoice.Choice.JOIN) {
+
+                Message msg = new Message("Joined table " + gc.getId() + " waiting for game start...\n");
+                connection.sendCommand(Command.Type.MESSAGE, msg);
+                return gc.getId();
+
             }
+
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
