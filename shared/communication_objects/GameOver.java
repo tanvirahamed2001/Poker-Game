@@ -5,6 +5,8 @@
 
 package shared.communication_objects;
 
-public class GameOver {
+import java.io.Serializable;
+
+public class GameOver implements Serializable{
     
 }

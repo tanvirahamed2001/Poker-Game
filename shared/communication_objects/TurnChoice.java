@@ -5,7 +5,9 @@
 
 package shared.communication_objects;
 
-public class TurnChoice {
+import java.io.Serializable;
+
+public class TurnChoice implements Serializable{
 
     public enum Choice {CHECK, CALL, BET, FOLD, FUNDS, CARD}
 
