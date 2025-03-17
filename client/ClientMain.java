@@ -40,6 +40,8 @@ public class ClientMain {
 
             // Step 5: Choose or create a game
             handleGameSelection(scanner);
+
+            // play the game
             playGame(scanner);
 
         } else {
@@ -210,7 +212,7 @@ public class ClientMain {
     }
 
     private static void playGame(Scanner scanner) {
-    	String response = "";
+    	Command serverResponse = (Command)in.readObject();
     	while(!response.equals("Goodbye!")) {
     		try {
     			socket.setSoTimeout(600000); //if server takes too long then disconnect

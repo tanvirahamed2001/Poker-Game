@@ -1,3 +1,8 @@
+/**
+ * this class is to mimic the client making a choice of creating a 
+ * NEW table or to JOIN a table in progress
+ */
+
 package shared.communication_objects;
 
 import java.io.Serializable;

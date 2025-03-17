@@ -1,3 +1,8 @@
+/**
+ * the object that allows passing the current table list on our server
+ * houses an array list of game ids that can be sent across the socket
+ */
+
 package shared.communication_objects;
 
 import java.io.Serializable;
