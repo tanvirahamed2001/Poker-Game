@@ -4,7 +4,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import shared.Player;
+import shared.*;
 import shared.communication_objects.*;
 
 // Accepts connections from clients and passes them to the ServerTableManager
@@ -25,12 +25,13 @@ public class ServerConnector implements Runnable {
                     System.out.println("New client connected: " + socket.getInetAddress());
 
                     // Read the Player object sent by the client
-                    ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
-                    Command cmd = (Command) input.readObject();
+                    PlayerConnection pc = new PlayerConnection(null, socket);
+                    Command cmd = (Command) pc.readCommand();
                     Player player = (Player) cmd.getPayload();
+                    pc.updatePlayer(player);
 
                     // Pass the connection and player to the ServerTableManager
-                    pool.submit(new ServerTableManager(socket, player));
+                    pool.submit(new ServerTableManager(pc));
                 } catch (IOException e) {
                     System.err.println("Error accepting client connection: " + e.getMessage());
                 } catch (ClassNotFoundException e) {

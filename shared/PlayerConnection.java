@@ -12,17 +12,24 @@ public class PlayerConnection {
     private ObjectOutputStream out;
 
     public PlayerConnection(Player player, Socket socket) throws IOException {
+
         this.player = player;
         this.socket = socket;
+
         // Create ObjectOutputStream first and flush its header.
         this.out = new ObjectOutputStream(socket.getOutputStream());
         this.out.flush();
+        
         // Then create ObjectInputStream.
         this.in = new ObjectInputStream(socket.getInputStream());
     }
     
     public Player getPlayer() {
         return player;
+    }
+
+    public void updatePlayer(Player player) {
+        this.player = player;
     }
     
     public Socket getSocket() {
@@ -49,7 +56,7 @@ public class PlayerConnection {
     }
     
     // Read a message and return it as an Object.
-    public Object readMessage() throws IOException, ClassNotFoundException {
+    public Object readCommand() throws IOException, ClassNotFoundException {
         return in.readObject();
     }
     

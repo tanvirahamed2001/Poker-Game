@@ -188,7 +188,7 @@ public class ServerTable implements Runnable {
         try {
             sendPlayer("token\n", currentplayer);
             // Read a response from the connection and cast it to String.
-            String response = (String) connections.get(currentplayer).readMessage();
+            String response = (String) connections.get(currentplayer).readCommand();
             if (response.equalsIgnoreCase("check")) {
                 if (currentBets.get(currentplayer) >= currentbet) {
                     sendAllPlayers("Player " + currentplayer + " checks.\n");

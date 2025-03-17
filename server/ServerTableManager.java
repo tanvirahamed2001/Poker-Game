@@ -10,12 +10,8 @@ public class ServerTableManager implements Runnable {
     private PlayerConnection connection;
     private static HashMap<Integer, ArrayList<PlayerConnection>> games = ServerMain.getGames();
 
-    public ServerTableManager(Socket socket, Player player) {
-        try {
-            this.connection = new PlayerConnection(player, socket);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public ServerTableManager(PlayerConnection pc) {
+        this.connection = pc;
     }
     
     @Override
@@ -45,7 +41,7 @@ public class ServerTableManager implements Runnable {
 
             connection.sendCommand(Command.Type.GAMES_LIST, new GameList(message));
 
-            response = (Command) connection.readMessage();
+            response = (Command) connection.readCommand();
 
             GameChoice gc = (GameChoice) response.getPayload();
             

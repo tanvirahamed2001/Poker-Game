@@ -151,13 +151,14 @@ public class ReplicationManager {
                 long now = System.currentTimeMillis();
                 if (now - lastUpdateTimestamp > HEARTBEAT_THRESHOLD) {
                     System.out.println("No update received in threshold time.");
-                    promoteToPrimary();
+                    //promoteToPrimary();
                     heartbeatTimer.cancel();
                 }
             }
         }, HEARTBEAT_THRESHOLD, HEARTBEAT_THRESHOLD);
     }
     
+    /*
     // Promotes the backup to primary if no updates are received.
     private void promoteToPrimary() {
         isPrimary = true;
@@ -170,8 +171,9 @@ public class ReplicationManager {
             }
         }
         new Thread(() -> startClientListener()).start();
-    }
+    } */
     
+    /* 
     // Starts a server socket to accept client connections once the backup is promoted.
     private void startClientListener() {
         try (ServerSocket clientSocket = new ServerSocket(CLIENT_PORT)) {
@@ -184,8 +186,9 @@ public class ReplicationManager {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
+    }*/
     
+    /*
     // Handles a new client connection after failover by passing it to ServerTableManager.
     private void handleClientConnection(Socket client) {
         System.out.println("Accepted a new client connection post-failover.");
@@ -196,5 +199,5 @@ public class ReplicationManager {
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
-    }
+    } */
 }
