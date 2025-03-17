@@ -115,6 +115,7 @@ public class ClientMain {
             socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
             out = new ObjectOutputStream(socket.getOutputStream());
             out.flush();
+            // wait for flush
             in = new ObjectInputStream(socket.getInputStream());
             return true;
         } catch (IOException e) {
