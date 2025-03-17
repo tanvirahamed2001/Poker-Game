@@ -25,7 +25,8 @@ public class ServerConnector implements Runnable {
 
                     // Read the Player object sent by the client
                     ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
-                    Player player = (Player) input.readObject();
+                    Command cmd = (Command) input.readObject();
+                    Player player = (Player) cmd.getPayload();
 
                     // Pass the connection and player to the ServerTableManager
                     pool.submit(new ServerTableManager(socket, player));
