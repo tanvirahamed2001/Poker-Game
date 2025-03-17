@@ -5,6 +5,7 @@ import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import shared.Player;
+import shared.communication_objects.*;
 
 // Accepts connections from clients and passes them to the ServerTableManager
 // Only one instance of this class should run at a time
