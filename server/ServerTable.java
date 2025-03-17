@@ -186,7 +186,8 @@ public class ServerTable implements Runnable {
     // This method reads a command from the current active player.
     private void getPlayerInput() {
         try {
-            sendPlayer("token\n", currentplayer);
+            // send the player the token to signal they turn
+            sendPlayer(Command.Type.TURN_TOKEN, new Token(), currentplayer);
             // Read a response from the connection and cast it to String.
             String response = (String) connections.get(currentplayer).readCommand();
             if (response.equalsIgnoreCase("check")) {
@@ -255,8 +256,8 @@ public class ServerTable implements Runnable {
         }
     }
     
-    private void sendPlayer(String message, int index) {
-            connections.get(index).sendCommand(Command.Type.MESSAGE, new Message(message));
+    private void sendPlayer(Command.Type type, Object obj, int index) {
+            connections.get(index).sendCommand(type, obj);
     }
     
     private void replicateGameState() {
