@@ -176,7 +176,9 @@ public class ClientMain {
             // send the command
             sendCommand(Command.Type.GAME_CHOICE, gc);
 
-            Command cmd = (Command)in.readObject();
+            serverResponse = (Command)in.readObject();
+
+            System.out.println(((Message)serverResponse.getPayload()).getMsg());
 
         } catch (IOException e) {
 
