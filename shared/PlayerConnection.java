@@ -19,13 +19,13 @@ public class PlayerConnection {
         // Create ObjectOutputStream first and flush its header.
         this.out = new ObjectOutputStream(socket.getOutputStream());
         this.out.flush();
-        
+
         // Then create ObjectInputStream.
         this.in = new ObjectInputStream(socket.getInputStream());
     }
     
     public Player getPlayer() {
-        return player;
+        return this.player;
     }
 
     public void updatePlayer(Player player) {
