@@ -33,6 +33,7 @@ import shared.PlayerConnection;
 import shared.card_based.*;
 import shared.card_based.Card.*;
 import shared.card_based.Poker_Hands.winners;
+import shared.communication_objects.*;
 
 public class ServerTable implements Runnable {
     // Unique game ID and a static map to look up running tables.
@@ -250,20 +251,12 @@ public class ServerTable implements Runnable {
     
     private void sendAllPlayers(String message) {
         for (PlayerConnection pc : connections) {
-            try {
-                pc.sendMessage(message);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+                pc.sendCommand(Command.Type.MESSAGE, new Message(message));
         }
     }
     
     private void sendPlayer(String message, int index) {
-        try {
-            connections.get(index).sendMessage(message);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+            connections.get(index).sendCommand(Command.Type.MESSAGE, new Message(message));
     }
     
     private void replicateGameState() {
