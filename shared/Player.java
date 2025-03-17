@@ -7,8 +7,6 @@ import shared.card_based.Card;
 // Player class no longer contains a Socket, making it serializable for network replication.
 public class Player implements Serializable {
 
-    private static final long serialVersionUID = 1L; // Required for serialization
-
     private String name;
     private int funds;
     private ArrayList<Card> hand;

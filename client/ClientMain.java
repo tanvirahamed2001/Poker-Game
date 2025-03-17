@@ -24,7 +24,7 @@ public class ClientMain {
         Scanner scanner = new Scanner(System.in);
 
         // Display welcome message for the client
-        System.out.println("Welcome to Poker Game!\n");
+        System.out.println("Welcome to Poker Game!");
 
         // Create the player
         player = getPlayerInfo(scanner);
@@ -210,12 +210,22 @@ public class ClientMain {
 
         try {
 
-    	    Command serverResponse = (Command)in.readObject();
+            socket.setSoTimeout(600000);
 
-            while(serverResponse.getType() != Command.Type.GAME_OVER) {
+            while(true) {
 
-                socket.setSoTimeout(600000);
-            
+                Command serverResponse = (Command)in.readObject();
+
+                if(serverResponse.getType() == Command.Type.GAME_OVER) {
+                    System.out.println("Game Over! Exiting!");
+                    break;
+                }
+
+                if(serverResponse.getType() == Command.Type.MESSAGE) {
+                    System.out.println(((Message)serverResponse.getPayload()).getMsg());
+                    continue;
+                }
+                
                 if(serverResponse.getType() == Command.Type.TURN_TOKEN) {
 
                     String allChoices = "It's your turn! Please enter a command! Available Commands Are: ";
