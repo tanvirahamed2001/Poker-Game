@@ -81,7 +81,7 @@ public class ServerTable implements Runnable {
     @Override
     public void run() {
         System.out.println("Game Started!");
-        sendAllPlayers("The Game has Begun!\n");
+        sendAllPlayers(Command.Type.MESSAGE, new Message("The Game has Begun!"));
     
         int numPlayers = connections.size();
         activePlayers = new boolean[numPlayers];
@@ -98,7 +98,7 @@ public class ServerTable implements Runnable {
             activePlayers[i] = true;
             players.get(i).new_card(deck.deal_card());
             players.get(i).new_card(deck.deal_card());
-            sendPlayer("Your cards are: " + players.get(i).show_all_cards() + "\n", i);
+            sendPlayer(Command.Type.MESSAGE, new Message("Your cards are: " + players.get(i).show_all_cards()), i);
             currentBets.add(0);
         }
         lastActive = currentplayer;
@@ -119,7 +119,7 @@ public class ServerTable implements Runnable {
                 }
             } while (!roundCompleted);
     
-            sendAllPlayers("Betting round over. Moving to next turn.\n");
+            sendAllPlayers(Command.Type.MESSAGE, new Message("Betting round over. Moving to next turn."));
             currentTurn++;
             clearBets();
     
@@ -128,24 +128,24 @@ public class ServerTable implements Runnable {
                     tablecards.add(deck.deal_card());
                     tablecards.add(deck.deal_card());
                     tablecards.add(deck.deal_card());
-                    sendAllPlayers("Turn 2: The Flop\nCards: " + tablecards.toString() + "\n");
+                    sendAllPlayers(Command.Type.MESSAGE, new Message("Turn 2: The Flop\nCards: " + tablecards.toString()));
                     break;
                 case 3: // Turn.
                     tablecards.add(deck.deal_card());
-                    sendAllPlayers("Turn 3: The Turn\nCard: " + tablecards.get(3).toString() + "\n");
+                    sendAllPlayers(Command.Type.MESSAGE, new Message("Turn 3: The Turn\nCard: " + tablecards.get(3).toString()));
                     break;
                 case 4: // River.
                     tablecards.add(deck.deal_card());
-                    sendAllPlayers("Turn 4: The River\nCard: " + tablecards.get(4).toString() + "\n");
+                    sendAllPlayers(Command.Type.MESSAGE, new Message("Turn 4: The River\nCard: " + tablecards.get(4).toString()));
                     break;
                 case 5: // Showdown.
                     ArrayList<Poker_Hands> winners = determine_winner();
                     if (winners.size() == 1) {
                         int winnum = winners.get(0).playernumber;
-                        sendAllPlayers("Player " + winnum + " has won the round! They earn $" + pot + "!\n");
+                        sendAllPlayers(Command.Type.MESSAGE, new Message("Player " + winnum + " has won the round! They earn $" + pot + "!"));
                         players.get(winnum).deposit_funds(pot);
                     } else {
-                        sendAllPlayers("Players tied! Splitting pot.\n");
+                        sendAllPlayers(Command.Type.MESSAGE, new Message("Players tied! Splitting pot."));
                         int share = pot / winners.size();
                         for (Poker_Hands ph : winners) {
                             players.get(ph.playernumber).deposit_funds(share);
@@ -158,7 +158,7 @@ public class ServerTable implements Runnable {
                             activePlayers[i] = true;
                             players.get(i).new_card(deck.deal_card());
                             players.get(i).new_card(deck.deal_card());
-                            sendPlayer("New hand: " + players.get(i).show_all_cards() + "\n", i);
+                            sendPlayer(Command.Type.MESSAGE, new Message("New hand: " + players.get(i).show_all_cards()), i);
                         } else {
                             activePlayers[i] = false;
                         }
@@ -169,7 +169,7 @@ public class ServerTable implements Runnable {
                     tablecards.clear();
                     currentplayer = 0;
                     lastActive = currentplayer;
-                    sendAllPlayers("New hand started.\n");
+                    sendAllPlayers(Command.Type.MESSAGE, new Message("New hand started."));
                     break;
             }
             lastActive = currentplayer;
@@ -188,60 +188,70 @@ public class ServerTable implements Runnable {
         try {
             // send the player the token to signal they turn
             sendPlayer(Command.Type.TURN_TOKEN, new Token(), currentplayer);
-            // Read a response from the connection and cast it to String.
-            String response = (String) connections.get(currentplayer).readCommand();
-            if (response.equalsIgnoreCase("check")) {
-                if (currentBets.get(currentplayer) >= currentbet) {
-                    sendAllPlayers("Player " + currentplayer + " checks.\n");
-                } else {
-                    sendPlayer("You must call, fold, or raise!\n", currentplayer);
-                    getPlayerInput();
-                }
-            } else if (response.toLowerCase().startsWith("bet")) {
-                try {
-                    int amount = Integer.parseInt(response.split(" ")[1]);
-                    if (amount <= 0 || amount > players.get(currentplayer).view_funds()) {
-                        sendPlayer("Invalid bet amount. Try again.\n", currentplayer);
+
+            // Read a command response from the connection
+            Command command = (Command) connections.get(currentplayer).readCommand();
+
+            if (command.getType() == Command.Type.TURN_CHOICE)  {
+
+                TurnChoice playerChoice = (TurnChoice) command.getPayload();
+
+                switch(playerChoice.getChoice()) {
+
+                    case CHECK:
+                        if (currentBets.get(currentplayer) >= currentbet) {
+                            sendAllPlayers(Command.Type.MESSAGE, new Message("Player " + currentplayer + " checks."));
+                        } else {
+                            sendPlayer(Command.Type.MESSAGE, new Message("You must call, fold, or raise!"), currentplayer);
+                            getPlayerInput();
+                        }
+                        break;
+
+                    case FUNDS:
+                        sendPlayer(Command.Type.MESSAGE, new Message("Your funds: $" + players.get(currentplayer).view_funds()), currentplayer);
                         getPlayerInput();
-                    } else {
-                        players.get(currentplayer).deposit_funds(-amount);
-                        sendAllPlayers("Player " + currentplayer + " bets $" + amount + ".\n");
-                        currentbet = amount;
-                        pot += amount;
-                        currentBets.set(currentplayer, amount);
-                        lastActive = currentplayer;
-                    }
-                } catch (Exception e) {
-                    sendPlayer("Error: Invalid bet command. Try again.\n", currentplayer);
-                    getPlayerInput();
+                        break;
+
+                    case CARD:
+                        sendPlayer(Command.Type.MESSAGE, new Message("Your cards: " + players.get(currentplayer).view_cards() + "\n" +
+                        "Table cards: " + tablecards.toString()), currentplayer);
+                        getPlayerInput();
+                        break;
+
+                    case FOLD:
+                        activePlayers[currentplayer] = false;
+                        sendAllPlayers(Command.Type.MESSAGE, new Message("Player " + currentplayer + " folds."));
+                        break;
+
+                    case BET:
+                        int amount = playerChoice.getBet();
+                        if (amount <= 0 || amount > players.get(currentplayer).view_funds()) {
+                            sendPlayer(Command.Type.MESSAGE, new Message("Invalid bet amount. Try again."), currentplayer);
+                            getPlayerInput();
+                        } else {
+                            players.get(currentplayer).deposit_funds(-amount);
+                            sendAllPlayers(Command.Type.MESSAGE, new Message("Player " + currentplayer + " bets $" + amount));
+                            currentbet = amount;
+                            pot += amount;
+                            currentBets.set(currentplayer, amount);
+                            lastActive = currentplayer;
+                        }
+                        break;
+
+                    case CALL:
+                        if (currentbet > players.get(currentplayer).view_funds()) {
+                            sendPlayer(Command.Type.MESSAGE, new Message("Insufficient funds to call. You must fold."), currentplayer);
+                            activePlayers[currentplayer] = false;
+                        } else {
+                            players.get(currentplayer).deposit_funds(-currentbet);
+                            pot += currentbet;
+                            currentBets.set(currentplayer, currentbet);
+                            sendAllPlayers(Command.Type.MESSAGE, new Message("Player " + currentplayer + " calls."));
+                        }
+                        break;
                 }
-            } else if (response.equalsIgnoreCase("fold")) {
-                activePlayers[currentplayer] = false;
-                sendAllPlayers("Player " + currentplayer + " folds.\n");
-            } else if (response.equalsIgnoreCase("call")) {
-                if (currentbet > players.get(currentplayer).view_funds()) {
-                    sendPlayer("Insufficient funds to call. You must fold.\n", currentplayer);
-                    activePlayers[currentplayer] = false;
-                } else {
-                    players.get(currentplayer).deposit_funds(-currentbet);
-                    pot += currentbet;
-                    currentBets.set(currentplayer, currentbet);
-                    sendAllPlayers("Player " + currentplayer + " calls.\n");
-                }
-            } else if (response.equalsIgnoreCase("funds")) {
-                sendPlayer("Your funds: $" + players.get(currentplayer).view_funds() + "\n", currentplayer);
-                getPlayerInput();
-            } else if (response.equalsIgnoreCase("cards")) {
-                sendPlayer("Your cards: " + players.get(currentplayer).view_cards() + "\n" +
-                           "Table cards: " + tablecards.toString() + "\n", currentplayer);
-                getPlayerInput();
-            } else {
-                sendPlayer("Invalid command! Please try again.\n", currentplayer);
-                getPlayerInput();
             }
-        } catch (SocketTimeoutException e) {
-            // Handle timeout if needed.
-        } catch (IOException | ClassNotFoundException e) {
+        } catch(Exception e) {
             e.printStackTrace();
         }
     }
@@ -250,9 +260,9 @@ public class ServerTable implements Runnable {
         currentplayer = (currentplayer + 1) % connections.size();
     }
     
-    private void sendAllPlayers(String message) {
+    private void sendAllPlayers(Command.Type type, Object obj) {
         for (PlayerConnection pc : connections) {
-                pc.sendCommand(Command.Type.MESSAGE, new Message(message));
+                pc.sendCommand(type, obj);
         }
     }
     

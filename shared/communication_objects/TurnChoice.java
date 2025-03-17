@@ -20,5 +20,13 @@ public class TurnChoice {
     public void betAmount(int amt) {
         this.bet = amt;
     }
+
+    public int getBet() {
+        return this.bet;
+    }
+
+    public Choice getChoice() {
+        return this.choice;
+    }
     
 }
