@@ -177,6 +177,8 @@ public class ClientMain {
                 gc = new GameChoice(GameChoice.Choice.NEW);
             }
 
+            scanner.flush();
+
             // send the command
             sendCommand(Command.Type.GAME_CHOICE, gc);
 
