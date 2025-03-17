@@ -139,6 +139,7 @@ public class ServerTable implements Runnable {
                     sendAllPlayers(Command.Type.MESSAGE, new Message("Turn 4: The River\nCard: " + tablecards.get(4).toString()));
                     break;
                 case 5: // Showdown.
+                        sendAllPlayers(Command.Type.MESSAGE, new Message("Turn 5: The Showdown!"));
                     ArrayList<Poker_Hands> winners = determine_winner();
                     if (winners.size() == 1) {
                         int winnum = winners.get(0).playernumber;
