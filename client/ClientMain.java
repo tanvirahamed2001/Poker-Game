@@ -36,7 +36,7 @@ public class ClientMain {
             System.out.println(String.format("Connected to the game server with name %s and funds %d!", player.get_name(), player.view_funds()));
 
             // Send player data to server
-            sendPlayerData();
+            sendCommand(Command.Type.PLAYER_INFO, player);
 
             // Step 5: Choose or create a game
             handleGameSelection(scanner);
@@ -72,18 +72,6 @@ public class ClientMain {
         }
         
         return new Player(playerName, depositAmount);
-    }
-
-    /**
-     * Sends the current state of the player to the server
-     */
-    private static void sendPlayerData() {
-        try {
-            out.writeObject(player);
-            out.flush();
-        } catch(IOException e) {
-            e.printStackTrace();
-        }
     }
 
     /**
@@ -143,7 +131,8 @@ public class ClientMain {
     /**
      * Handles sending commands to server
      */
-    private static void sendCommand(Command cmd) {
+    private static void sendCommand(Command.Type type, Object obj) {
+        Command cmd = new Command(type, obj);
         try {
             out.writeObject(cmd);
             out.flush();
@@ -185,9 +174,8 @@ public class ClientMain {
                 gc = new GameChoice(GameChoice.Choice.NEW);
             }
 
-            // build the command and send it over
-            Command choice = new Command(Command.Type.GAME_CHOICE, gc);
-            sendCommand(choice);
+            // send the command
+            sendCommand(Command.Type.GAME_CHOICE, gc);
 
         } catch (IOException e) {
 
@@ -212,27 +200,59 @@ public class ClientMain {
     }
 
     private static void playGame(Scanner scanner) {
-    	Command serverResponse = (Command)in.readObject();
-    	while(!response.equals("Goodbye!")) {
-    		try {
-    			socket.setSoTimeout(600000); //if server takes too long then disconnect
-				response = in.readLine();
-				if(response.equalsIgnoreCase("token")) {
-					System.out.println("It's your turn! Please enter a command! Available Commands Are: \"check\" (if no one else has bet), \"call\" (if someone has bet), \"bet #\" (where # is the amount you bet) \"fold\", \"funds\", \"cards\"");
-					String input = scanner.nextLine() + "\n";
-					out.write(input);
-					out.flush();
-				}
-				else {
-					System.out.println(response);
-				}
-			} catch(SocketTimeoutException e) {
-				break;
-			} 
-    		catch (IOException e) {
-				e.printStackTrace();
-				break;
-			}
-    	}
+
+        try {
+
+    	    Command serverResponse = (Command)in.readObject();
+
+            while(serverResponse.getType() != Command.Type.GAME_OVER) {
+                socket.setSoTimeout(600000);
+            
+                if(serverResponse.getType() == Command.Type.TURN_TOKEN) {
+
+                    String allChoices = "It's your turn! Please enter a command! Available Commands Are: ";
+
+                    for(TurnChoice.Choice c : TurnChoice.Choice.values()) {
+                        allChoices += c.name() + ", ";
+                    }
+
+                    if (allChoices.endsWith(", ")) {
+                        allChoices = allChoices.substring(0, allChoices.length() - 2);
+                    }
+
+                    System.out.println(allChoices);
+
+                    String input = scanner.nextLine().toUpperCase();
+                
+                    while(true) {
+
+                        try {
+
+                            TurnChoice.Choice choice = TurnChoice.Choice.valueOf(input);
+                            System.out.println("You chose: " + choice);
+
+                            TurnChoice tc = new TurnChoice(choice);
+
+                            if(choice == TurnChoice.Choice.BET) {
+                                System.out.print("Enter bet amount: ");
+                                int betAmount = scanner.nextInt();
+                                System.out.println("You bet: $" + betAmount);
+                                tc.betAmount(betAmount);
+                            }
+
+                            sendCommand(Command.Type.TURN_CHOICE, tc);
+
+                            break;
+
+                        } catch (IllegalArgumentException e) {
+
+                            System.out.println("Invalid choice. Please enter CHECK, CALL, BET, FOLD, FUNDS, CARD.");
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
