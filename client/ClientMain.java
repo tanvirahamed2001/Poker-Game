@@ -124,6 +124,8 @@ public class ClientMain {
                 System.err.println("Error: Unable to connect to server - " + e.getMessage());
                 socket = new Socket(SERVER_ADDRESS, BACKUP_PORT);
                 out = new ObjectOutputStream(socket.getOutputStream());
+                out.flush();
+                // wait for flush
                 in = new ObjectInputStream(socket.getInputStream());
                 return true;
             } catch(IOException e2) {
