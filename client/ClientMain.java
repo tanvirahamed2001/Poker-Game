@@ -216,8 +216,6 @@ public class ClientMain {
 
             while(true) {
 
-                scanner.nextLine();
-
                 Command serverResponse = (Command)in.readObject();
 
                 if(serverResponse.getType() == Command.Type.GAME_OVER) {
@@ -258,6 +256,7 @@ public class ClientMain {
                             if(choice == TurnChoice.Choice.BET) {
                                 System.out.print("Enter bet amount: ");
                                 int betAmount = scanner.nextInt();
+                                scanner.nextLine(); // consume left over new line
                                 System.out.println("You bet: $" + betAmount);
                                 tc.betAmount(betAmount);
                             }
