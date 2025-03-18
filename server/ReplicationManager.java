@@ -113,6 +113,8 @@ public class ReplicationManager {
                     updateLocalGameState(receivedState);
                     lastUpdateTimestamp = System.currentTimeMillis();
                     System.out.println("Received and applied GameState update from primary.");
+                    System.out.println("Game ID: " + receivedState.getGameId());
+                    System.out.println("Current Turn: " + receivedState.getCurrentTurn());
                 } else {
                     System.out.println("Received non-GameState object: " + obj.getClass().getName());
                 }
