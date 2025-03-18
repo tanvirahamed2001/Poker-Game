@@ -216,7 +216,7 @@ public class ServerTable implements Runnable {
 
                     case CARD:
                         sendPlayer(Command.Type.MESSAGE, new Message("Your cards: " + players.get(currentplayer).view_cards() + "\n" +
-                        "Table cards: " + Arrays.toString(tablecards)), currentplayer);
+                        "Table cards: " + tablecards), currentplayer);
                         getPlayerInput();
                         break;
 
