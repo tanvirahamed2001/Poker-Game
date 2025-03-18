@@ -29,7 +29,7 @@ public class ServerTableManager implements Runnable {
     
     private int getInput() {
         try {
-            String message = "Games Available:\n";
+            String message = "Games Available: ";
             Command response;
             Integer[] keys = games.keySet().toArray(new Integer[]{});
             for (int i = 0; i < games.size(); i++) {
