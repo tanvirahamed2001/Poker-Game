@@ -258,7 +258,6 @@ public class ClientMain {
                             if(choice == TurnChoice.Choice.BET) {
                                 System.out.print("Enter bet amount: ");
                                 int betAmount = Integer.parseInt(scanner.nextLine());
-                                scanner.nextLine(); // consume left over new line
                                 System.out.println("You bet: $" + betAmount);
                                 tc.betAmount(betAmount);
                             }
