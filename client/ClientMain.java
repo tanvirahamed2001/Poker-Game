@@ -216,6 +216,8 @@ public class ClientMain {
 
             while(true) {
 
+                scanner.nextLine();
+
                 Command serverResponse = (Command)in.readObject();
 
                 if(serverResponse.getType() == Command.Type.GAME_OVER) {
