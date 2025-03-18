@@ -37,7 +37,7 @@ public class ServerTableManager implements Runnable {
                            + ServerMain.maxplayers + " Players\n";
             }
 
-            message += "Please input the game number you would like to join, or type 'new' to create a new game\nDone\n";
+            message += "Please input the game number you would like to join, or type 'new' to create a new game.";
 
             connection.sendCommand(Command.Type.GAMES_LIST, new GameList(message));
 
