@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
@@ -215,7 +216,7 @@ public class ServerTable implements Runnable {
 
                     case CARD:
                         sendPlayer(Command.Type.MESSAGE, new Message("Your cards: " + players.get(currentplayer).view_cards() + "\n" +
-                        "Table cards: " + tablecards.toString()), currentplayer);
+                        "Table cards: " + tablecards), currentplayer);
                         getPlayerInput();
                         break;
 

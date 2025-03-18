@@ -29,15 +29,15 @@ public class ServerTableManager implements Runnable {
     
     private int getInput() {
         try {
-            String message = "Games Available:\n";
+            String message = "Games Available: ";
             Command response;
             Integer[] keys = games.keySet().toArray(new Integer[]{});
             for (int i = 0; i < games.size(); i++) {
                 message += "Game " + keys[i] + ": " + games.get(keys[i]).size() + "/" 
-                           + ServerMain.maxplayers + " Players\n";
+                           + ServerMain.maxplayers + " Players";
             }
 
-            message += "Please input the game number you would like to join, or type 'new' to create a new game\nDone\n";
+            message += "Please input the game number you would like to join, or type 'new' to create a new game.";
 
             connection.sendCommand(Command.Type.GAMES_LIST, new GameList(message));
 
@@ -47,13 +47,13 @@ public class ServerTableManager implements Runnable {
             
             if(gc.getChoice() == GameChoice.Choice.NEW) {
 
-                Message msg = new Message("You have created a new table! Waiting for players...\n");
+                Message msg = new Message("You have created a new table! Waiting for players...");
                 connection.sendCommand(Command.Type.MESSAGE, msg);
                 return 0;
 
             } else if (gc.getChoice() == GameChoice.Choice.JOIN) {
 
-                Message msg = new Message("Joined table " + gc.getId() + " waiting for game start...\n");
+                Message msg = new Message("Joined table " + gc.getId() + " waiting for game start...");
                 connection.sendCommand(Command.Type.MESSAGE, msg);
                 return gc.getId();
 
