@@ -17,7 +17,7 @@ public class Election implements Serializable{
     }
 
     public int get_target_id() {
-        return this.initiator_id;
+        return this.target_id;
     }
     
 }

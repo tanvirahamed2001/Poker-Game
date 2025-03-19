@@ -197,15 +197,74 @@ public class ReplicationManager {
         }
     }
     
-    // Placeholder: send an election message to a backup with the given target ID.
-    //         Command cmd2 = (Command)oos.readObject();
-    //         if(cmd2.getType() == Command.Type.ELECTION) OR if(cmd2.getPayload() instanceof Election) 
-    //         {
-    //              do election stuff
-    //         }
     private boolean sendElectionMessage(int targetId) throws IOException {
-        Command cmd = new Command(Command.Type.ELECTION, new Election(this.myBackupId, targetId));
+        // Determine the target's host and election port.
+        String targetHost = "localhost"; // Update as needed.
+        int baseElectionPort = 7000; // Example base port.
+        int targetPort = baseElectionPort + targetId; // e.g., backup with id 2 listens on 7002.
+        
+        try (Socket socket = new Socket(targetHost, targetPort)) {
+            socket.setSoTimeout(3000); // Set a timeout for the response.
+            
+            ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+            ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+            
+            // Create and send an election command.
+            Command electionCmd = new Command(Command.Type.ELECTION, new Election(myBackupId, targetId));
+            oos.writeObject(electionCmd);
+            oos.flush();
+            
+            // Wait for and process the response.
+            Command responseCmd = (Command) ois.readObject();
+            if (responseCmd.getType() == Command.Type.ELECTION) {
+                // Expecting a Boolean response indicating the target backup is alive.
+                Boolean isAlive = (Boolean) responseCmd.getPayload();
+                return isAlive;
+            }
+        } catch (IOException | ClassNotFoundException e) {
+            System.err.println("Error sending election message to backup " + targetId + ": " + e.getMessage());
+        }
         return false;
+    }
+
+    private void startElectionListener() {
+        new Thread(() -> {
+            int baseElectionPort = 7000;
+            int myElectionPort = baseElectionPort + myBackupId;
+            try (ServerSocket electionSocket = new ServerSocket(myElectionPort)) {
+                System.out.println("Backup " + myBackupId + " listening for election messages on port " + myElectionPort);
+                while (true) {
+                    Socket socket = electionSocket.accept();
+                    new Thread(() -> {
+                        try (ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+                             ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream())) {
+                            
+                            Command electionCmd = (Command) ois.readObject();
+                            if (electionCmd.getType() == Command.Type.ELECTION) {
+                                Election election = (Election) electionCmd.getPayload();
+                                // Ensure the message is for this backup.
+                                if (election.get_target_id() == myBackupId) {
+                                    // Respond with an acknowledgment (e.g., Boolean.TRUE).
+                                    Command response = new Command(Command.Type.ELECTION, Boolean.TRUE);
+                                    oos.writeObject(response);
+                                    oos.flush();
+                                }
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        } finally {
+                            try {
+                                socket.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }).start();
+                }
+            } catch (IOException e) {
+                System.err.println("Election listener on backup " + myBackupId + " failed: " + e.getMessage());
+            }
+        }).start();
     }
     
     // Promote this backup to primary.
