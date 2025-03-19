@@ -2,6 +2,7 @@ import java.io.*;
 import java.net.Socket;
 import java.net.ServerSocket;
 import java.util.*;
+import shared.communication_objects.*;
 
 public class ReplicationManager {
     private static ReplicationManager instance;
@@ -67,6 +68,7 @@ public class ReplicationManager {
                     Socket s = new Socket(ep.host, ep.port);
                     backupSockets.add(s);
                     ObjectOutputStream oos = new ObjectOutputStream(s.getOutputStream());
+                    oos.flush();
                     backupOutputs.add(oos);
                     System.out.println("Primary connected to backup at " + ep);
                 } catch (IOException e) {
@@ -196,9 +198,13 @@ public class ReplicationManager {
     }
     
     // Placeholder: send an election message to a backup with the given target ID.
+    //         Command cmd2 = (Command)oos.readObject();
+    //         if(cmd2.getType() == Command.Type.ELECTION) OR if(cmd2.getPayload() instanceof Election) 
+    //         {
+    //              do election stuff
+    //         }
     private boolean sendElectionMessage(int targetId) throws IOException {
-        // In your final implementation, use your object streams to send an Election command and wait for an OK response.
-        // For now, we simulate by returning false (i.e. no response).
+        Command cmd = new Command(Command.Type.ELECTION, new Election(this.myBackupId, targetId));
         return false;
     }
     
