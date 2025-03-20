@@ -20,11 +20,11 @@ public class ReplicationManager {
     private Timer heartbeatTimer;
     private long lastUpdateTimestamp;
     
-    // Leader election fields.
-    // Each backup is assigned a unique ID. (Set via system property "backupId", default is 1)
-    private int myBackupId;
-    // A list of backup IDs that should include all backups (for example, 1,2,3).
-    private List<Integer> backupIds;
+    // Election fields.
+    // Each server (primary or backup) has a unique ID.
+    private int serverId;
+    // List of all server IDs (for example, backups: 1,2,3 and primary: 4).
+    private List<Integer> allServerIds;
     
     // Helper class to define an endpoint (hostname and port)
     private static class Endpoint {
@@ -41,7 +41,7 @@ public class ReplicationManager {
     }
     
     // In primary mode, list the backup endpoints.
-    // For three backups, update these with the actual IP addresses of the backup machines.
+    // Update these endpoints with the actual IP addresses/ports of your backup servers.
     private final List<Endpoint> backupEndpoints = Arrays.asList(
         new Endpoint("localhost", 6836),
         new Endpoint("localhost", 6837),
@@ -53,16 +53,14 @@ public class ReplicationManager {
     private final int CLIENT_PORT = 6834;
     
     // Heartbeat threshold in milliseconds (adjust as needed).
-    private final long HEARTBEAT_THRESHOLD = 5000; // e.g., 5 seconds
+    private final long HEARTBEAT_THRESHOLD = 10000; // e.g., 50 seconds
     
     private ReplicationManager(boolean isPrimary) {
         this.isPrimary = isPrimary;
-        // Set backup IDs from configuration.
-        this.myBackupId = Integer.getInteger("backupId", 1); // Each backup runs with a unique backupId
-        this.backupIds = Arrays.asList(1, 2, 3); // Example: three backups
-        
         if (isPrimary) {
-            // Primary mode: connect to all backups.
+            // Primary mode: use the system property "serverId" (default 4).
+            this.serverId = Integer.getInteger("serverId", 4);
+            // Connect to all backup servers.
             for (Endpoint ep : backupEndpoints) {
                 try {
                     Socket s = new Socket(ep.host, ep.port);
@@ -77,11 +75,12 @@ public class ReplicationManager {
                 }
             }
         } else {
-            // Backup mode: create a replication listener.
+            // Backup mode: use the system property "backupId" (default 1).
+            this.serverId = Integer.getInteger("backupId", 1);
             try {
                 int replicationPort = Integer.getInteger("replicationPort", DEFAULT_REPLICATION_PORT);
                 replicationListener = new ServerSocket(replicationPort);
-                System.out.println("Backup " + myBackupId + " waiting for primary replication connection on port " + replicationPort);
+                System.out.println("Backup " + serverId + " waiting for primary replication connection on port " + replicationPort);
                 // Block until the primary connects.
                 Socket primarySocket = replicationListener.accept();
                 primaryIn = new ObjectInputStream(primarySocket.getInputStream());
@@ -91,6 +90,11 @@ public class ReplicationManager {
                 e.printStackTrace();
             }
         }
+        // Set the list of all server IDs. For example: backups (1, 2, 3) and primary (4).
+        this.allServerIds = Arrays.asList(1, 2, 3, 4);
+        
+        // Start election listener for every server (primary and backup).
+        startElectionListener();
     }
     
     public static synchronized ReplicationManager getInstance(boolean isPrimary) {
@@ -153,47 +157,56 @@ public class ReplicationManager {
         }
     }
     
-    // Start a heartbeat timer. If no update is received in threshold time, initiate leader election.
+    // Start a heartbeat timer. If no update is received within the threshold, initiate leader election.
     private void startHeartbeat() {
+        // If there's an existing timer, cancel it to avoid duplicate tasks.
+        if (heartbeatTimer != null) {
+            heartbeatTimer.cancel();
+        }
         heartbeatTimer = new Timer(true);
         lastUpdateTimestamp = System.currentTimeMillis();
+        
         heartbeatTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
                 long now = System.currentTimeMillis();
                 if (now - lastUpdateTimestamp > HEARTBEAT_THRESHOLD) {
-                    System.out.println("No update received in threshold time.");
+                    System.out.println("No update received in threshold time. Initiating election.");
                     startElection();
-                    heartbeatTimer.cancel();
+                    // Reset the lastUpdateTimestamp to avoid triggering repeated elections immediately
+                    lastUpdateTimestamp = now;
+                    
+                    // Alternatively, if your election process takes time,
+                    // you could cancel the timer and reinitialize it once the election concludes.
+                    // heartbeatTimer.cancel();
+                    // startHeartbeat();
                 }
             }
         }, HEARTBEAT_THRESHOLD, HEARTBEAT_THRESHOLD);
     }
     
-    // Bully algorithm: send election messages to all backups with a higher ID.
+    // Bully algorithm: send election messages to all servers with a higher ID.
     private void startElection() {
-        System.out.println("Backup " + myBackupId + " starting election.");
-        boolean higherBackupAlive = false;
-        for (Integer id : backupIds) {
-            if (id > myBackupId) {
+        System.out.println("Server " + serverId + " starting election.");
+        boolean higherServerAlive = false;
+        for (Integer id : allServerIds) {
+            if (id > serverId) {
                 try {
-                    // In a complete implementation, send an election Command to the backup with target ID.
-                    // Here, we simulate the process:
                     boolean response = sendElectionMessage(id);
                     if (response) {
-                        higherBackupAlive = true;
+                        higherServerAlive = true;
                         break;
                     }
                 } catch (IOException e) {
-                    System.err.println("No response from backup with id " + id);
+                    System.err.println("No response from server with id " + id);
                 }
             }
         }
-        if (!higherBackupAlive) {
-            System.out.println("No higher backup responded. Backup " + myBackupId + " becomes the new primary.");
+        if (!higherServerAlive) {
+            System.out.println("No higher server responded. Server " + serverId + " becomes the new primary.");
             promoteToPrimary();
         } else {
-            System.out.println("A higher backup is alive. Waiting for new leader announcement.");
+            System.out.println("A higher server is alive. Waiting for new leader announcement.");
         }
     }
     
@@ -201,7 +214,7 @@ public class ReplicationManager {
         // Determine the target's host and election port.
         String targetHost = "localhost"; // Update as needed.
         int baseElectionPort = 7000; // Example base port.
-        int targetPort = baseElectionPort + targetId; // e.g., backup with id 2 listens on 7002.
+        int targetPort = baseElectionPort + targetId; // For example, server with id 2 listens on port 7002.
         
         try (Socket socket = new Socket(targetHost, targetPort)) {
             socket.setSoTimeout(3000); // Set a timeout for the response.
@@ -210,29 +223,29 @@ public class ReplicationManager {
             ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
             
             // Create and send an election command.
-            Command electionCmd = new Command(Command.Type.ELECTION, new Election(myBackupId, targetId));
+            Command electionCmd = new Command(Command.Type.ELECTION, new Election(serverId, targetId));
             oos.writeObject(electionCmd);
             oos.flush();
             
             // Wait for and process the response.
             Command responseCmd = (Command) ois.readObject();
             if (responseCmd.getType() == Command.Type.ELECTION) {
-                // Expecting a Boolean response indicating the target backup is alive.
+                // Expecting a Boolean response indicating the target server is alive.
                 Boolean isAlive = (Boolean) responseCmd.getPayload();
                 return isAlive;
             }
         } catch (IOException | ClassNotFoundException e) {
-            System.err.println("Error sending election message to backup " + targetId + ": " + e.getMessage());
+            System.err.println("Error sending election message to server " + targetId + ": " + e.getMessage());
         }
         return false;
     }
-
+    
     private void startElectionListener() {
         new Thread(() -> {
             int baseElectionPort = 7000;
-            int myElectionPort = baseElectionPort + myBackupId;
+            int myElectionPort = baseElectionPort + serverId;
             try (ServerSocket electionSocket = new ServerSocket(myElectionPort)) {
-                System.out.println("Backup " + myBackupId + " listening for election messages on port " + myElectionPort);
+                System.out.println("Server " + serverId + " listening for election messages on port " + myElectionPort);
                 while (true) {
                     Socket socket = electionSocket.accept();
                     new Thread(() -> {
@@ -242,9 +255,8 @@ public class ReplicationManager {
                             Command electionCmd = (Command) ois.readObject();
                             if (electionCmd.getType() == Command.Type.ELECTION) {
                                 Election election = (Election) electionCmd.getPayload();
-                                // Ensure the message is for this backup.
-                                if (election.get_target_id() == myBackupId) {
-                                    // Respond with an acknowledgment (e.g., Boolean.TRUE).
+                                // Ensure the message is intended for this server.
+                                if (election.get_target_id() == serverId) {
                                     Command response = new Command(Command.Type.ELECTION, Boolean.TRUE);
                                     oos.writeObject(response);
                                     oos.flush();
@@ -262,7 +274,7 @@ public class ReplicationManager {
                     }).start();
                 }
             } catch (IOException e) {
-                System.err.println("Election listener on backup " + myBackupId + " failed: " + e.getMessage());
+                System.err.println("Election listener on server " + serverId + " failed: " + e.getMessage());
             }
         }).start();
     }
@@ -270,7 +282,7 @@ public class ReplicationManager {
     // Promote this backup to primary.
     private void promoteToPrimary() {
         isPrimary = true;
-        System.out.println("Backup " + myBackupId + " is now promoted to primary.");
+        System.out.println("Server " + serverId + " is now promoted to primary.");
         if (replicationListener != null) {
             try {
                 replicationListener.close();
@@ -279,8 +291,10 @@ public class ReplicationManager {
             }
         }
         // Start client listener on the primary port.
-       // new Thread(() -> startClientListener()).start();
+        // Uncomment the line below to start accepting client connections post-promotion.
+        // new Thread(() -> startClientListener()).start();
     }
+    
     
     // Starts a ServerSocket for client connections once this backup is promoted.
     private void startClientListener() {

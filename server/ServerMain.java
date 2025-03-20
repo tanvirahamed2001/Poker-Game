@@ -16,9 +16,12 @@ public class ServerMain {
         if (args.length > 0 && args[0].equalsIgnoreCase("backup")) {
             isPrimary = false;
         }
+        // When running as primary, use "serverId" (e.g., -DserverId=4);
+        // When running as backup, use "backupId" (e.g., -DbackupId=1).
         ReplicationManager replicationManager = ReplicationManager.getInstance(isPrimary);
         System.out.println("Starting server in " + (isPrimary ? "PRIMARY" : "BACKUP") + " mode...");
         if (isPrimary) {
+            // Primary now listens for election messages (via ReplicationManager) and accepts client connections.
             ServerConnector connector = new ServerConnector();
             Thread connectorThread = new Thread(connector);
             connectorThread.start();
