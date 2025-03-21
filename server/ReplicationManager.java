@@ -1,8 +1,8 @@
 import java.io.*;
-import java.net.Socket;
-import java.net.ServerSocket;
+import java.net.*;
 import java.util.*;
 import shared.communication_objects.*;
+import shared.*;
 
 public class ReplicationManager {
     private static ReplicationManager instance;
@@ -21,12 +21,10 @@ public class ReplicationManager {
     private long lastUpdateTimestamp;
     
     // Election fields.
-    // Each server (primary or backup) has a unique ID.
     private int serverId;
-    // List of all server IDs (for example, backups: 1,2,3 and primary: 4).
     private List<Integer> allServerIds;
     
-    // Helper class to define an endpoint (hostname and port)
+    // Helper class to define an endpoint.
     private static class Endpoint {
         String host;
         int port;
@@ -40,27 +38,29 @@ public class ReplicationManager {
         }
     }
     
-    // In primary mode, list the backup endpoints.
-    // Update these endpoints with the actual IP addresses/ports of your backup servers.
+    // List of backup endpoints.
     private final List<Endpoint> backupEndpoints = Arrays.asList(
         new Endpoint("localhost", 6836),
         new Endpoint("localhost", 6837),
         new Endpoint("localhost", 6838)
     );
     
-    // For backup mode: replication port and fixed client port.
+    // Ports.
     private final int DEFAULT_REPLICATION_PORT = 6836;
     private final int CLIENT_PORT = 6834;
     
-    // Heartbeat threshold in milliseconds (adjust as needed).
-    private final long HEARTBEAT_THRESHOLD = 10000; // e.g., 50 seconds
+    // Heartbeat threshold in ms.
+    private final long HEARTBEAT_THRESHOLD = 5000;
+    
+    // NEW: Map to store the latest replicated game states.
+    private Map<Integer, GameState> replicatedGameStates = new HashMap<>();
     
     private ReplicationManager(boolean isPrimary) {
         this.isPrimary = isPrimary;
         if (isPrimary) {
-            // Primary mode: use the system property "serverId" (default 4).
+            // Use system property "serverId" (default 4) for the primary.
             this.serverId = Integer.getInteger("serverId", 4);
-            // Connect to all backup servers.
+            // Connect to each backup.
             for (Endpoint ep : backupEndpoints) {
                 try {
                     Socket s = new Socket(ep.host, ep.port);
@@ -71,17 +71,16 @@ public class ReplicationManager {
                     System.out.println("Primary connected to backup at " + ep);
                 } catch (IOException e) {
                     System.err.println("Primary failed to connect to backup at " + ep);
-                    // Continue with remaining endpoints.
                 }
             }
         } else {
-            // Backup mode: use the system property "backupId" (default 1).
+            // Use system property "backupId" (default 1) for backups.
             this.serverId = Integer.getInteger("backupId", 1);
             try {
                 int replicationPort = Integer.getInteger("replicationPort", DEFAULT_REPLICATION_PORT);
                 replicationListener = new ServerSocket(replicationPort);
                 System.out.println("Backup " + serverId + " waiting for primary replication connection on port " + replicationPort);
-                // Block until the primary connects.
+                // Block until a primary connects.
                 Socket primarySocket = replicationListener.accept();
                 primaryIn = new ObjectInputStream(primarySocket.getInputStream());
                 new Thread(() -> listenForUpdates()).start();
@@ -90,10 +89,7 @@ public class ReplicationManager {
                 e.printStackTrace();
             }
         }
-        // Set the list of all server IDs. For example: backups (1, 2, 3) and primary (4).
         this.allServerIds = Arrays.asList(1, 2, 3, 4);
-        
-        // Start election listener for every server (primary and backup).
         startElectionListener();
     }
     
@@ -104,7 +100,7 @@ public class ReplicationManager {
         return instance;
     }
     
-    // Primary calls this method to broadcast the GameState to all backups.
+    // Called by the primary to broadcast GameState updates.
     public synchronized void sendStateUpdate(GameState state) {
         if (isPrimary) {
             Iterator<ObjectOutputStream> it = backupOutputs.iterator();
@@ -115,14 +111,13 @@ public class ReplicationManager {
                     oos.flush();
                 } catch (IOException e) {
                     System.err.println("Error sending state to a backup; removing connection.");
-                    e.printStackTrace();
                     it.remove();
                 }
             }
         }
     }
     
-    // Backups continuously listen for updates from the primary.
+    // Backups listen for state updates from the primary.
     private void listenForUpdates() {
         try {
             while (true) {
@@ -131,8 +126,8 @@ public class ReplicationManager {
                     GameState receivedState = (GameState) obj;
                     updateLocalGameState(receivedState);
                     lastUpdateTimestamp = System.currentTimeMillis();
-                    System.out.println("Received and applied GameState update from primary. (Game ID: " +
-                                       receivedState.getGameId() + ", Turn: " + receivedState.getCurrentTurn() + ")");
+                    System.out.println("Received and applied GameState update for game " +
+                                       receivedState.getGameId());
                 } else {
                     System.out.println("Received non-GameState object: " + obj.getClass().getName());
                 }
@@ -144,28 +139,27 @@ public class ReplicationManager {
         }
     }
     
-    // Update local game state via the ServerTable.
+    // NEW: Save the replicated game state and update the corresponding game table.
     private void updateLocalGameState(GameState state) {
+        replicatedGameStates.put(state.getGameId(), state);
         ServerTable currentTable = ServerTable.getInstance(state.getGameId());
         if (currentTable != null) {
             currentTable.updateState(state);
         } else {
-            System.err.println("No active game found for game ID " + state.getGameId() + " on backup. Creating new instance from replication state.");
+            System.err.println("No active game for game ID " + state.getGameId() + ". Creating new instance from replication state.");
             ArrayList<shared.PlayerConnection> dummyConnections = new ArrayList<>();
             ServerTable newTable = new ServerTable(state.getGameId(), dummyConnections);
             newTable.updateState(state);
         }
     }
     
-    // Start a heartbeat timer. If no update is received within the threshold, initiate leader election.
+    // Heartbeat mechanism to detect primary failure.
     private void startHeartbeat() {
-        // If there's an existing timer, cancel it to avoid duplicate tasks.
         if (heartbeatTimer != null) {
             heartbeatTimer.cancel();
         }
         heartbeatTimer = new Timer(true);
         lastUpdateTimestamp = System.currentTimeMillis();
-        
         heartbeatTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
@@ -173,19 +167,13 @@ public class ReplicationManager {
                 if (now - lastUpdateTimestamp > HEARTBEAT_THRESHOLD) {
                     System.out.println("No update received in threshold time. Initiating election.");
                     startElection();
-                    // Reset the lastUpdateTimestamp to avoid triggering repeated elections immediately
                     lastUpdateTimestamp = now;
-                    
-                    // Alternatively, if your election process takes time,
-                    // you could cancel the timer and reinitialize it once the election concludes.
-                    // heartbeatTimer.cancel();
-                    // startHeartbeat();
                 }
             }
         }, HEARTBEAT_THRESHOLD, HEARTBEAT_THRESHOLD);
     }
     
-    // Bully algorithm: send election messages to all servers with a higher ID.
+    // Election-related methods (startElection, sendElectionMessage, startElectionListener) follow...
     private void startElection() {
         System.out.println("Server " + serverId + " starting election.");
         boolean higherServerAlive = false;
@@ -211,26 +199,18 @@ public class ReplicationManager {
     }
     
     private boolean sendElectionMessage(int targetId) throws IOException {
-        // Determine the target's host and election port.
-        String targetHost = "localhost"; // Update as needed.
-        int baseElectionPort = 7000; // Example base port.
-        int targetPort = baseElectionPort + targetId; // For example, server with id 2 listens on port 7002.
-        
+        String targetHost = "localhost";
+        int baseElectionPort = 7000;
+        int targetPort = baseElectionPort + targetId;
         try (Socket socket = new Socket(targetHost, targetPort)) {
-            socket.setSoTimeout(3000); // Set a timeout for the response.
-            
+            socket.setSoTimeout(3000);
             ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
             ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
-            
-            // Create and send an election command.
             Command electionCmd = new Command(Command.Type.ELECTION, new Election(serverId, targetId));
             oos.writeObject(electionCmd);
             oos.flush();
-            
-            // Wait for and process the response.
             Command responseCmd = (Command) ois.readObject();
             if (responseCmd.getType() == Command.Type.ELECTION) {
-                // Expecting a Boolean response indicating the target server is alive.
                 Boolean isAlive = (Boolean) responseCmd.getPayload();
                 return isAlive;
             }
@@ -251,11 +231,9 @@ public class ReplicationManager {
                     new Thread(() -> {
                         try (ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
                              ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream())) {
-                            
                             Command electionCmd = (Command) ois.readObject();
                             if (electionCmd.getType() == Command.Type.ELECTION) {
                                 Election election = (Election) electionCmd.getPayload();
-                                // Ensure the message is intended for this server.
                                 if (election.get_target_id() == serverId) {
                                     Command response = new Command(Command.Type.ELECTION, Boolean.TRUE);
                                     oos.writeObject(response);
@@ -279,7 +257,6 @@ public class ReplicationManager {
         }).start();
     }
     
-    // Promote this backup to primary.
     private void promoteToPrimary() {
         isPrimary = true;
         System.out.println("Server " + serverId + " is now promoted to primary.");
@@ -290,34 +267,70 @@ public class ReplicationManager {
                 e.printStackTrace();
             }
         }
-        // Start client listener on the primary port.
-        // Uncomment the line below to start accepting client connections post-promotion.
-        // new Thread(() -> startClientListener()).start();
+        // Update the game list using replicated game states.
+        ServerMain.updateGames(replicatedGameStates);
+        // Connect to backups so they resume receiving state updates.
+        connectBackupsToNewPrimary();
+        // Start accepting client connections as the new primary.
+        new Thread(() -> startClientListener()).start();
     }
     
-    
-    // Starts a ServerSocket for client connections once this backup is promoted.
-    private void startClientListener() {
-        try (ServerSocket clientSocket = new ServerSocket(CLIENT_PORT)) {
-            clientSocket.setReuseAddress(true);
-            System.out.println("New primary now accepting client connections on port " + CLIENT_PORT);
-            while (true) {
-                Socket client = clientSocket.accept();
-                // Handle each client connection (e.g., pass to ServerTableManager).
-                new Thread(() -> handleClientConnection(client)).start();
+    // Connect to all backups.
+    private void connectBackupsToNewPrimary() {
+        for (Endpoint ep : backupEndpoints) {
+            try {
+                Socket backupSocket = new Socket(ep.host, ep.port);
+                backupSockets.add(backupSocket);
+                ObjectOutputStream oos = new ObjectOutputStream(backupSocket.getOutputStream());
+                oos.flush();
+                backupOutputs.add(oos);
+                System.out.println("New primary connected to backup at " + ep);
+            } catch (IOException e) {
+                System.err.println("New primary failed to connect to backup at " + ep);
             }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
     
-    // Handles incoming client connections post-failover.
+// Add a flag to ensure the client listener is only started once.
+private volatile boolean clientListenerStarted = false;
+
+private void startClientListener() {
+    // Check if the client listener is already running.
+    if (clientListenerStarted) {
+        System.out.println("Client listener already running.");
+        return;
+    }
+    
+    try {
+        // Try binding to the client port.
+        ServerSocket clientSocket = new ServerSocket(CLIENT_PORT);
+        clientSocket.setReuseAddress(true);
+        clientListenerStarted = true;
+        System.out.println("New primary now accepting client connections on port " + CLIENT_PORT);
+        while (true) {
+            Socket client = clientSocket.accept();
+            new Thread(() -> handleClientConnection(client)).start();
+        }
+    } catch (IOException e) {
+        e.printStackTrace();
+        System.err.println("Failed to bind to port " + CLIENT_PORT + ". Ensure the old primary is terminated or the port is free.");
+    }
+}
+
+    // Handle a client connection post-failover.
     private void handleClientConnection(Socket client) {
         System.out.println("Accepted a new client connection post-failover.");
         try {
             ObjectInputStream in = new ObjectInputStream(client.getInputStream());
-            shared.Player info = (shared.Player) in.readObject();
-            //new Thread(new ServerTableManager(client, info)).start();
+            Command cmd = (Command) in.readObject();
+            if (cmd.getType() == Command.Type.PLAYER_INFO) {
+                shared.Player player = (shared.Player) cmd.getPayload();
+                PlayerConnection pc = new PlayerConnection(null, client);
+                pc.updatePlayer(player);
+                new Thread(new ServerTableManager(pc)).start();
+            } else {
+                System.out.println("Unexpected command type from client: " + cmd.getType());
+            }
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }

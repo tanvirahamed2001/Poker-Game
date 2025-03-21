@@ -112,29 +112,30 @@ public class ClientMain {
      */
     private static boolean connectToServer() {
         try {
+            // Attempt primary connection
             socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
-            out = new ObjectOutputStream(socket.getOutputStream());
-            out.flush();
-            // wait for flush
-            in = new ObjectInputStream(socket.getInputStream());
-            return true;
+            System.out.println("Connected to primary server at " + SERVER_ADDRESS + ":" + SERVER_PORT);
         } catch (IOException e) {
-            try{
-                // primary connection failed, attempt backup
-                System.err.println("Error: Unable to connect to server - " + e.getMessage());
+            System.err.println("Failed to connect to primary server: " + e.getMessage());
+            try {
+                // Attempt connection to backup
                 socket = new Socket(SERVER_ADDRESS, BACKUP_PORT);
-                out = new ObjectOutputStream(socket.getOutputStream());
-                out.flush();
-                // wait for flush
-                in = new ObjectInputStream(socket.getInputStream());
-                return true;
-            } catch(IOException e2) {
-                System.err.println("Error: Unable to connect to primary server and backup- " + e2.getMessage());
+                System.out.println("Connected to backup server at " + SERVER_ADDRESS + ":" + BACKUP_PORT);
+            } catch (IOException e2) {
+                System.err.println("Failed to connect to backup server: " + e2.getMessage());
                 return false;
             }
         }
+        try {
+            out = new ObjectOutputStream(socket.getOutputStream());
+            out.flush();
+            in = new ObjectInputStream(socket.getInputStream());
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
     }
-
     /**
      * Handles sending commands to server
      */
@@ -211,72 +212,59 @@ public class ClientMain {
     }
 
     private static void playGame(Scanner scanner) {
-
         try {
-
             socket.setSoTimeout(600000);
-
-            while(true) {
-
-                Command serverResponse = (Command)in.readObject();
-
-                if(serverResponse.getType() == Command.Type.GAME_OVER) {
+            while (true) {
+                Command serverResponse = (Command) in.readObject();
+                // Process the command normally.
+                if (serverResponse.getType() == Command.Type.GAME_OVER) {
                     System.out.println("Game Over! Exiting!");
                     break;
                 }
-
-                if(serverResponse.getType() == Command.Type.MESSAGE) {
-                    System.out.println(((Message)serverResponse.getPayload()).getMsg());
+                if (serverResponse.getType() == Command.Type.MESSAGE) {
+                    System.out.println(((Message) serverResponse.getPayload()).getMsg());
                     continue;
                 }
-                
-                if(serverResponse.getType() == Command.Type.TURN_TOKEN) {
-
-                    String allChoices = "It's your turn! Please enter a command! Available Commands Are: ";
-
-                    for(TurnChoice.Choice c : TurnChoice.Choice.values()) {
-                        allChoices += c.name() + ", ";
-                    }
-
-                    if (allChoices.endsWith(", ")) {
-                        allChoices = allChoices.substring(0, allChoices.length() - 2);
-                    }
-
-                    System.out.println(allChoices);
-
-                    String input = scanner.nextLine().toUpperCase();
-                
-                    while(true) {
-
-                        try {
-
-                            TurnChoice.Choice choice = TurnChoice.Choice.valueOf(input);
-                            System.out.println("You chose: " + choice);
-
-                            TurnChoice tc = new TurnChoice(choice);
-
-                            if(choice == TurnChoice.Choice.BET) {
-                                System.out.print("Enter bet amount: ");
-                                int betAmount = Integer.parseInt(scanner.nextLine());
-                                System.out.println("You bet: $" + betAmount);
-                                tc.betAmount(betAmount);
-                            }
-
-                            sendCommand(Command.Type.TURN_CHOICE, tc);
-
-                            break;
-
-                        } catch (IllegalArgumentException e) {
-
-                            System.out.println("Invalid choice. Please enter CHECK, CALL, BET, FOLD, FUNDS, CARD.");
-                        }
-                    }
-                }
+                // ... additional processing ...
             }
         } catch (Exception e) {
+            System.out.println("Error during game communication: " + e.getMessage());
+            System.out.println("Attempting to reconnect...");
+            reconnectToServer();
+            // Optionally, re-enter the game loop or reinitialize state.
+        }
+    }
 
-            e.printStackTrace();
-
+    private static void monitorConnection() {
+        new Thread(() -> {
+            while (true) {
+                try {
+                    // Sleep a bit before checking the connection status.
+                    Thread.sleep(5000);
+                    // A simple check: if the socket is closed or not connected, trigger a reconnect.
+                    if (socket == null || socket.isClosed() || !socket.isConnected()) {
+                        throw new IOException("Connection lost");
+                    }
+                } catch (Exception e) {
+                    System.out.println("Connection lost. Attempting to reconnect...");
+                    reconnectToServer();
+                }
+            }
+        }).start();
+    }
+    
+    private static void reconnectToServer() {
+        // Close any existing resources.
+        closeConnection();
+        boolean reconnected = connectToServer();
+        if (reconnected) {
+            System.out.println("Reconnected successfully!");
+            // Optionally reinitialize or notify the game logic about reconnection.
+        } else {
+            System.out.println("Reconnect attempt failed. Retrying...");
+            // Optionally wait before trying again.
+            try { Thread.sleep(3000); } catch (InterruptedException ie) {}
+            reconnectToServer();
         }
     }
 }
