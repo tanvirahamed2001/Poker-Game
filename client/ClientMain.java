@@ -195,6 +195,9 @@ public class ClientMain {
         }
     }
 
+    /**
+     * Client side game playing logic
+     */
     private static void playGame(Scanner scanner) {
 
         try {
@@ -225,7 +228,7 @@ public class ClientMain {
                             System.out.println("You chose: " + choice);
                             TurnChoice tc = new TurnChoice(choice);
                             if(choice == TurnChoice.Choice.BET) {
-                                System.out.print("Enter bet amount: ");
+                                System.out.println("Enter bet amount: ");
                                 int betAmount = Integer.parseInt(scanner.nextLine());
                                 System.out.println("You bet: $" + betAmount);
                                 tc.betAmount(betAmount);
