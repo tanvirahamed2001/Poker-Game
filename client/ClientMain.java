@@ -13,7 +13,7 @@ import shared.communication_objects.*;
 public class ClientMain {
     private static final String SERVER_ADDRESS = "localhost"; // Place blocker where we will put IP address UofC systems to keep it consistent
     private static final int SERVER_PORT = 6834; // Match server port
-    private static final int BACKUP_PORT = 6836; // BACKUP PORT
+    private static final int BACKUP_PORT = 6834; // BACKUP PORT
     private static Socket socket;
     private static ObjectOutputStream out;
     private static ObjectInputStream in;
@@ -116,22 +116,22 @@ public class ClientMain {
             socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
             System.out.println("Connected to primary server at " + SERVER_ADDRESS + ":" + SERVER_PORT);
         } catch (IOException e) {
-            System.err.println("Failed to connect to primary server: " + e.getMessage());
-            try {
+            System.err.println("Failed to connect to primary server: " + e.getClass().getSimpleName());
+           /*  try {
                 // Attempt connection to backup
                 socket = new Socket(SERVER_ADDRESS, BACKUP_PORT);
                 System.out.println("Connected to backup server at " + SERVER_ADDRESS + ":" + BACKUP_PORT);
             } catch (IOException e2) {
                 System.err.println("Failed to connect to backup server: " + e2.getMessage());
                 return false;
-            }
+            }*/
         }
         try {
             out = new ObjectOutputStream(socket.getOutputStream());
             out.flush();
             in = new ObjectInputStream(socket.getInputStream());
         } catch (IOException e) {
-            e.printStackTrace();
+            e.getClass().getSimpleName();
             return false;
         }
         monitorConnection();

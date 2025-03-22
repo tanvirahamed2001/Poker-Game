@@ -271,6 +271,7 @@ public class ReplicationManager {
         ServerMain.updateGames(replicatedGameStates);
         // Connect to backups so they resume receiving state updates.
         connectBackupsToNewPrimary();
+        heartbeatTimer.cancel();
         // Start accepting client connections as the new primary.
         new Thread(() -> startClientListener()).start();
     }
