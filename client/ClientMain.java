@@ -146,7 +146,7 @@ public class ClientMain {
             out.writeObject(cmd);
             out.flush();
         } catch(Exception e) {
-            e.printStackTrace();
+            System.err.println("Error sending command object: " + e.getClass().getSimpleName());
         }
     }
 
@@ -179,9 +179,9 @@ public class ClientMain {
             serverResponse = (Command)in.readObject();
             System.out.println(((Message)serverResponse.getPayload()).getMsg());
         } catch (IOException e) {
-            System.err.println("Error receiving game selection: " + e.getMessage());
+            System.err.println("Error receiving game selection: " + e.getClass().getSimpleName());
         } catch (ClassNotFoundException e2) {
-            System.err.println("Error with game list object: " + e2.getMessage());
+            System.err.println("Error with game list object: " + e2.getClass().getSimpleName());
         }
     }
 
@@ -192,7 +192,7 @@ public class ClientMain {
             if (in != null) in.close();
             System.out.println("Disconnected from server.");
         } catch (IOException e) {
-            System.err.println("Error closing connection: " + e.getMessage());
+            System.err.println("Error closing connection: " + e.getClass().getSimpleName());
         }
     }
 
