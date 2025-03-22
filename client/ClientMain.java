@@ -134,6 +134,7 @@ public class ClientMain {
             e.printStackTrace();
             return false;
         }
+        monitorConnection();
         return true;
     }
     /**
@@ -237,23 +238,21 @@ public class ClientMain {
                             break;
                         } catch (IllegalArgumentException e) {
                             System.out.println("Invalid choice. Please enter CHECK, CALL, BET, FOLD, FUNDS, CARD.");
-                        } catch (IOException io) {
-                            System.out.println("Error during game communication: " + e.getMessage());
-                            System.out.println("Attempting to reconnect...");
-                            reconnectToServer();
                         }
                     }
                 }
             }
         }catch (Exception e) {
-            System.out.println("Error during game communication: " + e.getMessage());
-            System.out.println("Attempting to reconnect...");
-            reconnectToServer();
+            //System.out.println("Error during game communication: " + e.getMessage());
+            //System.out.println("Attempting to reconnect...");
+            //reconnectToServer();
             // Optionally, re-enter the game loop or reinitialize state.
         }
     }
 
-
+    /**
+     * Thread for monitoring the current establishes connection to the server
+     */
     private static void monitorConnection() {
         new Thread(() -> {
             while (true) {
