@@ -154,49 +154,33 @@ public class ClientMain {
      * Proceeds to build a GAME_CHOICE Command and send to the server
      */
     private static void handleGameSelection(Scanner scanner) {
-
         System.out.println("Waiting for available games...");
-
-        try {
-            
+        try { 
             // build the server response command
             Command serverResponse = (Command)in.readObject();
-
             // check if the response is of type GAMES_LIST
             if(serverResponse.getType() == Command.Type.GAMES_LIST) {
                 GameList games = (GameList) serverResponse.getPayload();
                 System.out.println(games.getGames());
             }
-
             // create the game choice from the player
             System.out.print("Enter game number or type 'new': ");
-
             GameChoice gc;
-            
             if(scanner.hasNextInt()) {
                 gc = new GameChoice(GameChoice.Choice.JOIN);
                 gc.setId(scanner.nextInt());
             } else {
                 gc = new GameChoice(GameChoice.Choice.NEW);
             }
-
             scanner.nextLine();
-
             // send the command
             sendCommand(Command.Type.GAME_CHOICE, gc);
-
             serverResponse = (Command)in.readObject();
-
             System.out.println(((Message)serverResponse.getPayload()).getMsg());
-
         } catch (IOException e) {
-
             System.err.println("Error receiving game selection: " + e.getMessage());
-
         } catch (ClassNotFoundException e2) {
-
             System.err.println("Error with game list object: " + e2.getMessage());
-
         }
     }
 
@@ -212,28 +196,83 @@ public class ClientMain {
     }
 
     private static void playGame(Scanner scanner) {
+
         try {
+
             socket.setSoTimeout(600000);
-            while (true) {
-                Command serverResponse = (Command) in.readObject();
-                // Process the command normally.
-                if (serverResponse.getType() == Command.Type.GAME_OVER) {
+
+            while(true) {
+
+                Command serverResponse = (Command)in.readObject();
+
+                if(serverResponse.getType() == Command.Type.GAME_OVER) {
                     System.out.println("Game Over! Exiting!");
                     break;
                 }
-                if (serverResponse.getType() == Command.Type.MESSAGE) {
-                    System.out.println(((Message) serverResponse.getPayload()).getMsg());
+
+                if(serverResponse.getType() == Command.Type.MESSAGE) {
+                    System.out.println(((Message)serverResponse.getPayload()).getMsg());
                     continue;
                 }
-                // ... additional processing ...
+                
+                if(serverResponse.getType() == Command.Type.TURN_TOKEN) {
+
+                    String allChoices = "It's your turn! Please enter a command! Available Commands Are: ";
+
+                    for(TurnChoice.Choice c : TurnChoice.Choice.values()) {
+                        allChoices += c.name() + ", ";
+                    }
+
+                    if (allChoices.endsWith(", ")) {
+                        allChoices = allChoices.substring(0, allChoices.length() - 2);
+                    }
+
+                    System.out.println(allChoices);
+
+                    String input = scanner.nextLine().toUpperCase();
+                
+                    while(true) {
+
+                        try {
+
+                            TurnChoice.Choice choice = TurnChoice.Choice.valueOf(input);
+                            System.out.println("You chose: " + choice);
+
+                            TurnChoice tc = new TurnChoice(choice);
+
+                            if(choice == TurnChoice.Choice.BET) {
+                                System.out.print("Enter bet amount: ");
+                                int betAmount = Integer.parseInt(scanner.nextLine());
+                                System.out.println("You bet: $" + betAmount);
+                                tc.betAmount(betAmount);
+                            }
+
+                            sendCommand(Command.Type.TURN_CHOICE, tc);
+
+                            break;
+
+                        } catch (IllegalArgumentException e) {
+
+                            System.out.println("Invalid choice. Please enter CHECK, CALL, BET, FOLD, FUNDS, CARD.");
+                        }
+
+
+
+
+
+
+
+                    }
+
+
+
+                }
             }
         } catch (Exception e) {
-            System.out.println("Error during game communication: " + e.getMessage());
-            System.out.println("Attempting to reconnect...");
-            reconnectToServer();
-            // Optionally, re-enter the game loop or reinitialize state.
+            e.printStackTrace();
         }
     }
+
 
     private static void monitorConnection() {
         new Thread(() -> {
