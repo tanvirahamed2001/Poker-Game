@@ -116,7 +116,7 @@ public class ClientMain {
             socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
             System.out.println("Connected to primary server at " + SERVER_ADDRESS + ":" + SERVER_PORT);
         } catch (IOException e) {
-            System.err.println("Failed to connect to primary server: " + e.getClass().getSimpleName());
+            System.err.println("Failed to connect to primary server: " + e.getClass().getSimpleName() + " in ClientMain Line 119.");
            /*  try {
                 // Attempt connection to backup
                 socket = new Socket(SERVER_ADDRESS, BACKUP_PORT);
@@ -131,7 +131,7 @@ public class ClientMain {
             out.flush();
             in = new ObjectInputStream(socket.getInputStream());
         } catch (IOException e) {
-            e.getClass().getSimpleName();
+            System.err.println("Failed to setup object input and output streams: " + e.getClass().getSimpleName() + " in ClientMain Line 134.");
             return false;
         }
         monitorConnection();
@@ -146,7 +146,7 @@ public class ClientMain {
             out.writeObject(cmd);
             out.flush();
         } catch(Exception e) {
-            System.err.println("Error sending command object: " + e.getClass().getSimpleName());
+            System.err.println("Error sending command object: " + e.getClass().getSimpleName() + " in ClientMain Line 149.");
         }
     }
 
@@ -179,9 +179,9 @@ public class ClientMain {
             serverResponse = (Command)in.readObject();
             System.out.println(((Message)serverResponse.getPayload()).getMsg());
         } catch (IOException e) {
-            System.err.println("Error receiving game selection: " + e.getClass().getSimpleName());
+            System.err.println("Error receiving game selection: " + e.getClass().getSimpleName()  + " in ClientMain Line 182.");
         } catch (ClassNotFoundException e2) {
-            System.err.println("Error with game list object: " + e2.getClass().getSimpleName());
+            System.err.println("Error with game list object: " + e2.getClass().getSimpleName()  + " in ClientMain Line 184.");
         }
     }
 
@@ -192,7 +192,7 @@ public class ClientMain {
             if (in != null) in.close();
             System.out.println("Disconnected from server.");
         } catch (IOException e) {
-            System.err.println("Error closing connection: " + e.getClass().getSimpleName());
+            System.err.println("Error closing connection: " + e.getClass().getSimpleName()  + " in ClientMain Line 195.");
         }
     }
 
@@ -271,6 +271,9 @@ public class ClientMain {
         }).start();
     }
     
+    /**
+     * Reconnect to server logic for when the connection is lost
+     */
     private static void reconnectToServer() {
         // Close any existing resources.
         closeConnection();
