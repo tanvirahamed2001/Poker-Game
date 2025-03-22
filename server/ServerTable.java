@@ -52,7 +52,7 @@ public class ServerTable implements Runnable {
     private int currentbet, lastActive, currentplayer, pot, currentTurn;
     private ArrayList<Integer> currentBets;
     private boolean activePlayers[];
-    
+    private boolean roundCompleted, activeCheck;
     public ServerTable(int gameId, ArrayList<PlayerConnection> connections) {
         this.gameId = gameId;
         this.connections = connections;
@@ -109,16 +109,20 @@ public class ServerTable implements Runnable {
         // Main game loop for each street until showdown.
         while (currentTurn <= 5) {
             replicateGameState();
-            int bettingStart = currentplayer; // Record who starts this round.
-            boolean roundCompleted = false;
+            boolean bettingStart = true; // used to check if it's the first turn
+            roundCompleted = false;
+            activeCheck = false;
             do {
                 if (activePlayers[currentplayer]) {
                     getPlayerInput();
                 }
                 incrementPlayer();
                 // End betting round when we have looped back to the start and the current player is also the last who bet.
-                if (currentplayer == bettingStart && currentplayer == lastActive) {
+                if (!bettingStart && currentplayer == lastActive && activeCheck) {
                     roundCompleted = true;
+                }
+                if(bettingStart) {//will skip over the first turn
+                	bettingStart = false;
                 }
             } while (!roundCompleted);
     
@@ -177,6 +181,7 @@ public class ServerTable implements Runnable {
                     break;
             }
             lastActive = currentplayer;
+            bettingStart = true;
         }
     }
     
@@ -190,7 +195,7 @@ public class ServerTable implements Runnable {
     // This method reads a command from the current active player.
     private void getPlayerInput() {
         try {
-            // send the player the token to signal they turn
+            // send the player the token to signal their turn
             sendPlayer(Command.Type.TURN_TOKEN, new Token(), currentplayer);
 
             // Read a command response from the connection
@@ -205,6 +210,9 @@ public class ServerTable implements Runnable {
                     case CHECK:
                         if (currentBets.get(currentplayer) >= currentbet) {
                             sendAllPlayers(Command.Type.MESSAGE, new Message("Player " + currentplayer + " checks."));
+                            if(currentplayer == lastActive) {
+                            	activeCheck = true;
+                            }
                         } else {
                             sendPlayer(Command.Type.MESSAGE, new Message("You must call, fold, or raise!"), currentplayer);
                             getPlayerInput();
@@ -223,13 +231,25 @@ public class ServerTable implements Runnable {
                         break;
 
                     case FOLD:
+                        int numac = 0;
+                        for(int i = 0; i < activePlayers.length; i++) {
+                        	if(activePlayers[i]) {
+                        		numac++;
+                        	}
+                        }
+                        if(numac == 1) {//i.e only 1 player left on the table, skip to last turn
+                        	sendPlayer(Command.Type.MESSAGE, new Message("You're the last player, please check until the final round!"), currentplayer);
+                        	getPlayerInput();
+                        	break;
+                        }
                         activePlayers[currentplayer] = false;
                         sendAllPlayers(Command.Type.MESSAGE, new Message("Player " + currentplayer + " folds."));
+
                         break;
 
                     case BET:
                         int amount = playerChoice.getBet();
-                        if (amount <= 0 || amount > players.get(currentplayer).view_funds()) {
+                        if (amount <= 0 || amount > players.get(currentplayer).view_funds() || amount <= (currentbet-currentBets.get(currentplayer))) {
                             sendPlayer(Command.Type.MESSAGE, new Message("Invalid bet amount. Try again."), currentplayer);
                             getPlayerInput();
                         } else {
@@ -285,7 +305,9 @@ public class ServerTable implements Runnable {
         ArrayList<Poker_Hands> wins = new ArrayList<>();
         ArrayList<ArrayList<Card>> hands = new ArrayList<>();
         for (int i = 0; i < players.size(); i++) {
-            hands.add(players.get(i).show_all_cards());
+        	if(activePlayers[i]) {
+        		hands.add(players.get(i).show_all_cards());
+        	}
         }
         ArrayList<Card> combined = new ArrayList<>();
         for (int j = 0; j < hands.size(); j++) {

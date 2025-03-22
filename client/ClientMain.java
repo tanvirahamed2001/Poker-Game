@@ -239,9 +239,10 @@ public class ClientMain {
                         allChoices = allChoices.substring(0, allChoices.length() - 2);
                     }
                     System.out.println(allChoices);
-                    String input = scanner.nextLine().toUpperCase();
+                    String input;
                     while(true) {
                         try {
+                        	input = scanner.nextLine().toUpperCase();
                             TurnChoice.Choice choice = TurnChoice.Choice.valueOf(input);
                             System.out.println("You chose: " + choice);
                             TurnChoice tc = new TurnChoice(choice);
