@@ -18,6 +18,7 @@ public class ClientMain {
     private static ObjectOutputStream out;
     private static ObjectInputStream in;
     private static Player player;
+    private static int id;
 
     public static void main(String[] args) {
         // Create a scanner for getting player input
@@ -26,11 +27,12 @@ public class ClientMain {
         // Display welcome message for the client
         System.out.println("Welcome to Poker Game!");
 
-        // Create the player
-        player = getPlayerInfo(scanner);
-        
         // Begin connection to server
         if (connectToServer()) {
+
+            // wait for assigned player id and then create the player
+            id = getIDFromServer();
+            player = getPlayerInfo(scanner, id);
 
             // Print connection completed message for the client
             System.out.println(String.format("Connected to the game server with name %s and funds %d!", player.get_name(), player.view_funds()));
@@ -51,12 +53,28 @@ public class ClientMain {
         closeConnection();
     }
 
+    private static int getIDFromServer() {
+        try{
+            // wait for assigned player id
+            Command cmd = (Command) in.readObject();
+            if(cmd.getPayload() instanceof ClientServerId) {
+                ClientServerId id = (ClientServerId) cmd.getPayload();
+                return id.getID();
+            } else {
+                return 0;
+            }
+        } catch(IOException | ClassNotFoundException e) {
+            System.err.println("Error: " + e.getClass().getSimpleName() + " in ClientMain Line 63.");
+            return 0;
+        }
+    }
+
     /**
      * Gets the current players information
      * @param scanner
      * @return Player
      */
-    private static Player getPlayerInfo(Scanner scanner) {
+    private static Player getPlayerInfo(Scanner scanner, int id) {
         System.out.print("Enter your name: ");
         String playerName = scanner.nextLine();
         int depositAmount;
@@ -70,9 +88,7 @@ public class ClientMain {
         	}
             
         }
-
-        Player player = new Player(playerName, depositAmount);
-        
+        Player player = new Player(playerName, depositAmount, id);
         return player;
     }
 

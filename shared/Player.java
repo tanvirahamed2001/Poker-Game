@@ -10,16 +10,18 @@ public class Player implements Serializable {
     private String name;
     private int funds;
     private ArrayList<Card> hand;
+    private int client_id;
 
     /**
      * Creates a new Player object from client information.
      * @param name The name of the player.
      * @param funds The initial funds of the player.
      */
-    public Player(String name, int funds) {
+    public Player(String name, int funds, int id) {
         this.name = name;
         this.funds = funds;
         this.hand = new ArrayList<>();
+        this.client_id = id;
     }
 
     /**

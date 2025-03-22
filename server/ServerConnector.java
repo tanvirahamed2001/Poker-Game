@@ -6,10 +6,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import shared.*;
 import shared.communication_objects.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 // Accepts connections from clients and passes them to the ServerTableManager
 // Only one instance of this class should run at a time
 public class ServerConnector implements Runnable {
+
+    private static AtomicInteger nextId = new AtomicInteger(1);
 
     @Override
     public void run() {
@@ -24,8 +27,13 @@ public class ServerConnector implements Runnable {
                     Socket socket = connector.accept();
                     System.out.println("New client connected: " + socket.getInetAddress());
 
-                    // Read the Player object sent by the client
+                    // initially setup the player connection object with the socket
                     PlayerConnection pc = new PlayerConnection(null, socket);
+
+                    // Send the player his assigned ID
+                    pc.sendCommand(Command.Type.SERVER_CLIENT_ID, new ClientServerId(nextId.getAndIncrement()));
+
+                    // Wait for response to get player information
                     Command cmd = (Command) pc.readCommand();
                     Player player = (Player) cmd.getPayload();
                     pc.updatePlayer(player);
