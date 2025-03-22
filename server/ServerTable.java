@@ -21,11 +21,13 @@ if player is active: give token -> listen for commands (until timeout)
 after all the turns are done, calculate who has the best hand and give them the pot, players who are out of cash are kicked, those who aren't restart play
 */
 
+
 import java.io.IOException;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
@@ -292,11 +294,11 @@ public class ServerTable implements Runnable {
             }
             combined.add(hands.get(j).get(0));
             combined.add(hands.get(j).get(1));
-            combined.sort(Comparator.comparing(Card::get_rank));
-            ArrayList<Card> straight = check_straight(combined);
-            if (!straight.isEmpty()) {
-                if (!check_flush(straight).isEmpty()) {
-                    wins.add(new Poker_Hands(winners.STRAIGHTFLUSH, straight.get(straight.size()-1), j));
+            ArrayList<Card> flush = check_flush(combined);
+            if (!flush.isEmpty()) {
+                if (!check_straight(flush).isEmpty()) {
+                	flush.sort(Comparator.comparing(Card::get_rank));
+                    wins.add(new Poker_Hands(winners.STRAIGHTFLUSH, flush.get(flush.size()-1), j));
                     combined.clear();
                     continue;
                 }
@@ -306,19 +308,22 @@ public class ServerTable implements Runnable {
                 combined.clear();
                 continue;
             } else {
-                if (!straight.isEmpty()) {
-                    wins.set(j, new Poker_Hands(winners.STRAIGHT, straight.get(0), j));
+            	if (!flush.isEmpty()) {
+            		flush.sort(Comparator.comparing(Card::get_rank));
+                    wins.set(j, new Poker_Hands(winners.FLUSH, flush.get(flush.size()-1), j));
                     combined.clear();
                     continue;
-                } else if (!check_flush(combined).isEmpty()) {
-                    ArrayList<Card> flusher = check_flush(combined);
-                    wins.set(j, new Poker_Hands(winners.FLUSH, flusher.get(flusher.size()-1), j));
+                }
+            	ArrayList<Card> straight = check_straight(combined);
+            	if (!straight.isEmpty()) {
+                    wins.set(j, new Poker_Hands(winners.STRAIGHT, straight.get(0), j));
                     combined.clear();
                     continue;
                 } else {
                     combined.clear();
                     continue;
                 }
+                 
             }
         }
         ArrayList<Poker_Hands> firstcheck = new ArrayList<>();
@@ -472,48 +477,32 @@ public class ServerTable implements Runnable {
     
     private ArrayList<Card> check_straight(ArrayList<Card> combined) {
         ArrayList<Card> straighter = new ArrayList<>();
-        boolean consecutive = false;
-        for (Card.Rank rank : Card.Rank.values()) {
-            for (int i = 0; i < combined.size(); i++) {
-                if (combined.get(i).get_rank() == rank) {
-                    if (i < combined.size() - 1) {
-                        if (combined.get(i).get_rank() == combined.get(i+1).get_rank()) {
-                            if (i < combined.size() - 2) {
-                                if (combined.get(i).get_suit() == combined.get(i+2).get_suit()) {
-                                    straighter.add(combined.get(i));
-                                    straighter.remove(i+1);
-                                } else {
-                                    straighter.add(combined.get(i+1));
-                                    straighter.remove(i);
-                                }
-                            }
-                            if (!straighter.isEmpty()) {
-                                if (combined.get(i).get_suit() == straighter.get(0).get_suit()) {
-                                    straighter.add(combined.get(i));
-                                    straighter.remove(i+1);
-                                } else {
-                                    straighter.add(combined.get(i+1));
-                                    straighter.remove(i);
-                                }
-                            } else {
-                                straighter.add(combined.get(i));
-                                straighter.remove(i+1);
-                            }
-                        }
-                    }
-                    consecutive = true;
-                    break;
-                }
-            }
-            if (!consecutive) {
-                straighter.clear();
-            } else {
-                if (straighter.size() == 5) {
-                    return straighter;
-                }
-                consecutive = false;
-            }
+        combined.sort(Comparator.comparing(Card::get_rank));
+        Collections.reverse(combined); //high to low, so as to get the best straight possible
+        int consecutive = 0;
+        for(int i = 0; i < combined.size()-1; i++) {
+        	if(combined.get(i).get_rank().ordinal()-1 == combined.get(i+1).get_rank().ordinal()) {
+        		if(consecutive == 0) {
+        			consecutive += 2;
+        			straighter.add(combined.get(i));
+        			straighter.add(combined.get(i+1));
+        		}
+        		else {
+        			consecutive++;
+        			straighter.add(combined.get(i+1));
+        			}
+        		if(consecutive == 5) {return straighter;}
+        	}
+        	else {
+        		straighter.clear();
+        		consecutive = 0;
+        		if(i == 2) {
+        			return straighter;
+        		}
+        	}
         }
+        //unreachable?
+        straighter.clear();
         return straighter;
     }
 }
