@@ -1,6 +1,8 @@
 package shared.communication_objects;
 
-public class ClientServerId {
+import java.io.Serializable;
+
+public class ClientServerId implements Serializable {
 
     private int id;
 
