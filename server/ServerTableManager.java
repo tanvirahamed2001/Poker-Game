@@ -34,7 +34,7 @@ public class ServerTableManager implements Runnable {
             Integer[] keys = games.keySet().toArray(new Integer[]{});
             for (int i = 0; i < games.size(); i++) {
                 message += "Game " + keys[i] + ": " + games.get(keys[i]).size() + "/" 
-                           + ServerMain.maxplayers + " Players";
+                           + ServerMain.maxplayers + " Players\n";
             }
 
             message += "Please input the game number you would like to join, or type 'new' to create a new game.";
