@@ -47,7 +47,7 @@ public class ServerConnector implements Runnable {
                         } catch(ClassNotFoundException e2) {
                             System.err.println("Error getting class information: " + e2.getMessage() + "in ServerConnector Line 48.");
                         }      
-                    }).start();;
+                    }).start();
                 } catch (IOException e) {
                     System.err.println("Error opening client socket: " + e.getMessage() + " in ServerConnector Line 50.");
                 }
