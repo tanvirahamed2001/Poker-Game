@@ -165,7 +165,7 @@ public class ClientMain {
             System.out.println(((Message)serverResponse.getPayload()).getMsg());
             System.out.println("Waiting for server table information!");
             serverResponse = (Command)in.readObject();
-            table_info = new InTable(true, ((InTable)serverResponse.getPayload()).getTableID());
+            table_info = new InTable(true, ((TableInfo)serverResponse.getPayload()).getTableID());
         } catch (IOException e) {
             System.err.println("Error receiving game selection: " + e.getClass().getSimpleName()  + " in ClientMain Line 182.");
         } catch (ClassNotFoundException e2) {
