@@ -208,6 +208,10 @@ public class ClientMain {
                     System.out.println(((Message)serverResponse.getPayload()).getMsg());
                     continue;
                 }
+                if(serverResponse.getType() == Command.Type.CLIENT_UPDATE_PLAYER) {
+                    player = (Player)serverResponse.getPayload();
+                    continue;
+                }
                 if(serverResponse.getType() == Command.Type.TURN_TOKEN) {
                     String allChoices = "It's your turn! Please enter a command! Available Commands Are: ";
                     for(TurnChoice.Choice c : TurnChoice.Choice.values()) {
@@ -278,6 +282,7 @@ public class ClientMain {
         boolean reconnected = connectToServer();
         if (reconnected) {
             System.out.println("Reconnected successfully!");
+            sendCommand(Command.Type.PLAYER_INFO, player);
             Scanner scanner = new Scanner(System.in);
             if(table_info.getIn()) {
                 System.out.println("In table before disconnect...attempting to join table " + table_info.getTableID());
