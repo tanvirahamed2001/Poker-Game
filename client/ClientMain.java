@@ -107,9 +107,10 @@ public class ClientMain {
             System.err.println("Failed to connect to primary server: " + e.getClass().getSimpleName() + " in ClientMain Line 119.");
         }
         try {
+            System.out.println("Opening new output stream Line 110.");
             out = new ObjectOutputStream(socket.getOutputStream());
             out.flush();
-            // flush commment
+            System.out.println("Opening new input stream Line 110.");
             in = new ObjectInputStream(socket.getInputStream());
         } catch (IOException e) {
             System.err.println("Failed to setup object input and output streams: " + e.getClass().getSimpleName() + " in ClientMain Line 134.");
