@@ -30,27 +30,16 @@ public class ClientMain {
 
         // Begin connection to server
         if (connectToServer()) {
-
-            // wait for assigned player id and then create the player
             id = getIDFromServer();
             player = getPlayerInfo(scanner, id);
-
-            // Print connection completed message for the client
             System.out.println(String.format("Connected to the game server with name %s and funds %d!", player.get_name(), player.view_funds()));
-
-            // Send player data to server
             sendCommand(Command.Type.PLAYER_INFO, player);
-
-            // Step 5: Choose or create a game
             handleGameSelection(scanner);
-
-            // play the game
             playGame(scanner);
 
         } else {
             System.out.println("Failed to connect to the server. Please try again later.");
         }
-        // Close resources when done
         closeConnection();
     }
 
@@ -60,7 +49,6 @@ public class ClientMain {
      */
     private static int getIDFromServer() {
         try{
-            // wait for assigned player id
             Command cmd = (Command) in.readObject();
             if(cmd.getPayload() instanceof ClientServerId) {
                 ClientServerId id = (ClientServerId) cmd.getPayload();
@@ -129,7 +117,7 @@ public class ClientMain {
     /**
      * Attempts to connect to the given server IP and port
      * Sets up the necessary streams for input and output
-     * @return
+     * @return true or false
      */
     private static boolean connectToServer() {
         try {
@@ -158,6 +146,7 @@ public class ClientMain {
         monitorConnection();
         return true;
     }
+
     /**
      * Handles sending commands to server
      */
@@ -206,6 +195,9 @@ public class ClientMain {
         }
     }
 
+    /**
+     * Bundle close connection code
+     */
     private static void closeConnection() {
         try {
             if (socket != null) socket.close();
@@ -218,7 +210,11 @@ public class ClientMain {
     }
 
     /**
-     * Client side game playing logic
+     * Client side game playing logic.
+     * Waits for a Command object from the server and decides based on the payload
+     * [Game Over -> Game has ended, should return to table browser]
+     * [Message -> Print plain text]
+     * [Turn Token -> Its our turn to play, decide on a move for the turn]
      */
     private static void playGame(Scanner scanner) {
 
@@ -273,7 +269,8 @@ public class ClientMain {
     }
 
     /**
-     * Thread for monitoring the current establishes connection to the server
+     * Thread for monitoring the current establishes connection to the server.
+     * Attemps to reconnect on detected failure
      */
     private static void monitorConnection() {
         new Thread(() -> {
@@ -294,7 +291,8 @@ public class ClientMain {
     }
     
     /**
-     * Reconnect to server logic for when the connection is lost
+     * Reconnect to server logic for when the connection is lost.
+     * Closes connections to start then calls connectToServer to establish new connection.
      */
     private static void reconnectToServer() {
         // Close any existing resources.
