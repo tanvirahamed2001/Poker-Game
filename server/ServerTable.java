@@ -244,7 +244,6 @@ public class ServerTable implements Runnable {
                         }
                         activePlayers[currentplayer] = false;
                         sendAllPlayers(Command.Type.MESSAGE, new Message("Player " + currentplayer + " folds."));
-
                         break;
 
                     case BET:
@@ -297,6 +296,9 @@ public class ServerTable implements Runnable {
     private void replicateGameState() {
         GameState currentState = new GameState(gameId, players, pot, currentTurn, tablecards);
         ReplicationManager.getInstance(true).sendStateUpdate(currentState);
+        for(PlayerConnection pc : connections) {
+
+        }
     }
     
     // The determine_winner(), check_other(), check_flush(), and check_straight methods remain unchanged.

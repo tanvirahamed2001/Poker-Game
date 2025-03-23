@@ -63,4 +63,8 @@ public class PlayerConnection {
     public void close() throws IOException {
         socket.close();
     }
+
+    public void updateClientPlayer() {
+        sendCommand(Command.Type.CLIENT_UPDATE_PLAYER, this.player);
+    }
 }
