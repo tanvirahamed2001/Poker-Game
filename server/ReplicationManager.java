@@ -323,11 +323,10 @@ private void startClientListener() {
     private void handleClientConnection(Socket client) {
         System.out.println("Accepted a new client connection post-failover.");
         try {
-            ObjectInputStream in = new ObjectInputStream(client.getInputStream());
-            Command cmd = (Command) in.readObject();
+            PlayerConnection pc = new PlayerConnection(null, client);
+            Command cmd = (Command) pc.readCommand();
             if (cmd.getType() == Command.Type.PLAYER_INFO) {
-                shared.Player player = (shared.Player) cmd.getPayload();
-                PlayerConnection pc = new PlayerConnection(null, client);
+                Player player = (Player) cmd.getPayload();
                 pc.updatePlayer(player);
                 new Thread(new ServerTableManager(pc)).start();
             } else {
