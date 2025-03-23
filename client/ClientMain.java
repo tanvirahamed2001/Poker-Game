@@ -101,23 +101,15 @@ public class ClientMain {
      */
     private static boolean connectToServer() {
         try {
-            // Attempt primary connection
             socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
             System.out.println("Connected to primary server at " + SERVER_ADDRESS + ":" + SERVER_PORT);
         } catch (IOException e) {
             System.err.println("Failed to connect to primary server: " + e.getClass().getSimpleName() + " in ClientMain Line 119.");
-           /*  try {
-                // Attempt connection to backup
-                socket = new Socket(SERVER_ADDRESS, BACKUP_PORT);
-                System.out.println("Connected to backup server at " + SERVER_ADDRESS + ":" + BACKUP_PORT);
-            } catch (IOException e2) {
-                System.err.println("Failed to connect to backup server: " + e2.getMessage());
-                return false;
-            }*/
         }
         try {
             out = new ObjectOutputStream(socket.getOutputStream());
             out.flush();
+            // flush commment
             in = new ObjectInputStream(socket.getInputStream());
         } catch (IOException e) {
             System.err.println("Failed to setup object input and output streams: " + e.getClass().getSimpleName() + " in ClientMain Line 134.");
@@ -280,10 +272,8 @@ public class ClientMain {
         boolean reconnected = connectToServer();
         if (reconnected) {
             System.out.println("Reconnected successfully!");
-            // Optionally reinitialize or notify the game logic about reconnection.
         } else {
             System.out.println("Reconnect attempt failed. Retrying...");
-            // Optionally wait before trying again.
             try { Thread.sleep(3000); } catch (InterruptedException ie) {}
             reconnectToServer();
         }
