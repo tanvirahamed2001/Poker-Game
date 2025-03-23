@@ -280,9 +280,11 @@ public class ClientMain {
             System.out.println("Reconnected successfully!");
             Scanner scanner = new Scanner(System.in);
             if(table_info.getIn()) {
+                System.out.println("In table before disconnect...attempting to join table " + table_info.getTableID());
                 sendCommand(Command.Type.RECONNECT, table_info.getTableID());
                 playGame(scanner);
             } else {
+                System.out.println("Client was not in a table, getting table list");
                 handleGameSelection(scanner);
                 playGame(scanner);
             }
