@@ -116,6 +116,9 @@ public class ServerTable implements Runnable {
                 if (activePlayers[currentplayer]) {
                     getPlayerInput();
                 }
+                if((!activePlayers[currentplayer]) && currentplayer == lastActive) {
+                	activeCheck = true;
+                }
                 incrementPlayer();
                 // End betting round when we have looped back to the start and the current player is also the last who bet.
                 if (!bettingStart && currentplayer == lastActive && activeCheck) {
@@ -208,7 +211,7 @@ public class ServerTable implements Runnable {
                 switch(playerChoice.getChoice()) {
 
                     case CHECK:
-                        if (currentBets.get(currentplayer) >= currentbet) {
+                        if ((currentBets.get(currentplayer) >= currentbet && players.get(currentplayer).view_funds() != 0)) { //if funds are == 0 then they're all in and they're allowed to continue playing until the end of the round
                             sendAllPlayers(Command.Type.MESSAGE, new Message("Player " + currentplayer + " checks."));
                             if(currentplayer == lastActive) {
                             	activeCheck = true;
@@ -237,7 +240,7 @@ public class ServerTable implements Runnable {
                         		numac++;
                         	}
                         }
-                        if(numac == 1) {//i.e only 1 player left on the table, skip to last turn
+                        if(numac == 1) {//i.e only 1 player left on the table
                         	sendPlayer(Command.Type.MESSAGE, new Message("You're the last player, please check until the final round!"), currentplayer);
                         	getPlayerInput();
                         	break;
@@ -304,9 +307,11 @@ public class ServerTable implements Runnable {
         // ... existing logic remains unchanged ...
         ArrayList<Poker_Hands> wins = new ArrayList<>();
         ArrayList<ArrayList<Card>> hands = new ArrayList<>();
+        ArrayList<Integer> player = new ArrayList<>();
         for (int i = 0; i < players.size(); i++) {
         	if(activePlayers[i]) {
         		hands.add(players.get(i).show_all_cards());
+        		player.add(i);
         	}
         }
         ArrayList<Card> combined = new ArrayList<>();
@@ -320,25 +325,25 @@ public class ServerTable implements Runnable {
             if (!flush.isEmpty()) {
                 if (!check_straight(flush).isEmpty()) {
                 	flush.sort(Comparator.comparing(Card::get_rank));
-                    wins.add(new Poker_Hands(winners.STRAIGHTFLUSH, flush.get(flush.size()-1), j));
+                    wins.add(new Poker_Hands(winners.STRAIGHTFLUSH, flush.get(flush.size()-1), player.get(j)));
                     combined.clear();
                     continue;
                 }
             }
-            wins.add(check_other(combined, j));
+            wins.add(check_other(combined, j, player));
             if (wins.get(j).result == winners.FOURKIND || wins.get(j).result == winners.FULLHOUSE) {
                 combined.clear();
                 continue;
             } else {
             	if (!flush.isEmpty()) {
             		flush.sort(Comparator.comparing(Card::get_rank));
-                    wins.set(j, new Poker_Hands(winners.FLUSH, flush.get(flush.size()-1), j));
+                    wins.set(j, new Poker_Hands(winners.FLUSH, flush.get(flush.size()-1), player.get(j)));
                     combined.clear();
                     continue;
                 }
             	ArrayList<Card> straight = check_straight(combined);
             	if (!straight.isEmpty()) {
-                    wins.set(j, new Poker_Hands(winners.STRAIGHT, straight.get(0), j));
+                    wins.set(j, new Poker_Hands(winners.STRAIGHT, straight.get(0), player.get(j)));
                     combined.clear();
                     continue;
                 } else {
@@ -359,8 +364,8 @@ public class ServerTable implements Runnable {
                 break;
             }
         }
-        if (wins.size() == 1) {
-            return wins;
+        if (firstcheck.size() == 1) {
+            return firstcheck;
         } else {
             firstcheck.sort(Comparator.comparing(Poker_Hands::gethighrank));
             ArrayList<Poker_Hands> secondcheck = new ArrayList<>();
@@ -392,7 +397,7 @@ public class ServerTable implements Runnable {
         }
     }
     
-    private Poker_Hands check_other(ArrayList<Card> combined, int j) {
+    private Poker_Hands check_other(ArrayList<Card> combined, int j, ArrayList<Integer> player) {
         ArrayList<Card> pairOne = new ArrayList<>();
         ArrayList<Card> pairTwo = new ArrayList<>();
         ArrayList<Card> pairThree = new ArrayList<>();
@@ -421,7 +426,7 @@ public class ServerTable implements Runnable {
         // If no pair is found, return a HIGH hand using the two highest cards.
         if (pairOne.isEmpty()) {
             int size = combined.size();
-            return new Poker_Hands(Poker_Hands.winners.HIGH, combined.get(size - 1), combined.get(size - 2), j);
+            return new Poker_Hands(Poker_Hands.winners.HIGH, combined.get(size - 1), combined.get(size - 2), player.get(j));
         }
         
         // Check for three-of-a-kind (or potential full house)
@@ -429,13 +434,13 @@ public class ServerTable implements Runnable {
         if (maxPairSize == 3) {
             // Only one pair exists? Then it is a three-of-a-kind.
             if (pairTwo.isEmpty()) {
-                return new Poker_Hands(Poker_Hands.winners.THREEKIND, pairOne.get(0), combined.get(combined.size() - 1), j);
+                return new Poker_Hands(Poker_Hands.winners.THREEKIND, pairOne.get(0), combined.get(combined.size() - 1), player.get(j));
             } else if (pairThree.isEmpty()) {
                 // Full house: one three-of-a-kind plus a pair.
                 if (pairOne.size() == 3) {
-                    return new Poker_Hands(Poker_Hands.winners.FULLHOUSE, pairOne.get(0), pairTwo.get(0), j);
+                    return new Poker_Hands(Poker_Hands.winners.FULLHOUSE, pairOne.get(0), pairTwo.get(0), player.get(j));
                 } else {
-                    return new Poker_Hands(Poker_Hands.winners.FULLHOUSE, pairTwo.get(0), pairOne.get(0), j);
+                    return new Poker_Hands(Poker_Hands.winners.FULLHOUSE, pairTwo.get(0), pairOne.get(0), player.get(j));
                 }
             } else {
                 // If three pairs exist, collect one card from each for tie-breaking.
@@ -444,21 +449,21 @@ public class ServerTable implements Runnable {
                 compair.add(pairThree.get(0));
                 compair.sort(Comparator.comparing(Card::get_rank));
                 if (compair.size() >= 3) {
-                    return new Poker_Hands(Poker_Hands.winners.TWOPAIR, compair.get(2), compair.get(1), j);
+                    return new Poker_Hands(Poker_Hands.winners.TWOPAIR, compair.get(2), compair.get(1), player.get(j));
                 } else {
-                    return new Poker_Hands(Poker_Hands.winners.ONEPAIR, compair.get(0), compair.get(0), j);
+                    return new Poker_Hands(Poker_Hands.winners.ONEPAIR, compair.get(0), compair.get(0), player.get(j));
                 }
             }
         }
         
         // If only one pair exists, return ONEPAIR.
         if (pairTwo.isEmpty()) {
-            return new Poker_Hands(Poker_Hands.winners.ONEPAIR, pairOne.get(0), combined.get(combined.size() - 1), j);
+            return new Poker_Hands(Poker_Hands.winners.ONEPAIR, pairOne.get(0), combined.get(combined.size() - 1), player.get(j));
         } else if (pairThree.isEmpty()) {
             compair.add(pairOne.get(0));
             compair.add(pairTwo.get(0));
             compair.sort(Comparator.comparing(Card::get_rank));
-            return new Poker_Hands(Poker_Hands.winners.TWOPAIR, compair.get(1), compair.get(0), j);
+            return new Poker_Hands(Poker_Hands.winners.TWOPAIR, compair.get(1), compair.get(0), player.get(j));
         } else {
             // When three distinct pairs exist, ensure compair has at least three elements.
             compair.add(pairOne.get(0));
@@ -466,9 +471,9 @@ public class ServerTable implements Runnable {
             compair.add(pairThree.get(0));
             compair.sort(Comparator.comparing(Card::get_rank));
             if (compair.size() >= 3) {
-                return new Poker_Hands(Poker_Hands.winners.TWOPAIR, compair.get(2), compair.get(1), j);
+                return new Poker_Hands(Poker_Hands.winners.TWOPAIR, compair.get(2), compair.get(1), player.get(j));
             } else {
-                return new Poker_Hands(Poker_Hands.winners.ONEPAIR, compair.get(0), compair.get(0), j);
+                return new Poker_Hands(Poker_Hands.winners.ONEPAIR, compair.get(0), compair.get(0), player.get(j));
             }
         }
     }
