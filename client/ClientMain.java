@@ -20,6 +20,7 @@ public class ClientMain {
     private static ObjectInputStream in;
     private static Player player;
     private static int id;
+    private static InTable table_info = new InTable(false, 0);
 
     public static void main(String[] args) {
         // Create a scanner for getting player input
@@ -110,11 +111,8 @@ public class ClientMain {
             System.out.println("Opening new output stream Line 110.");
             out = new ObjectOutputStream(socket.getOutputStream());
             out.flush();
-
             System.out.println("Opening new input stream Line 110.");
-
             in = new ObjectInputStream(socket.getInputStream());
-            
             System.out.println("Opening finished opening streams! Line 115.");
         } catch (IOException e) {
             System.err.println("Failed to setup object input and output streams: " + e.getClass().getSimpleName() + " in ClientMain Line 134.");
@@ -142,6 +140,7 @@ public class ClientMain {
      * Proceeds to build a GAME_CHOICE Command and send to the server
      */
     private static void handleGameSelection(Scanner scanner) {
+        sendCommand(Command.Type.INITIAL_CONN, null);
         System.out.println("Waiting for available games...");
         try { 
             // build the server response command
@@ -161,10 +160,11 @@ public class ClientMain {
                 gc = new GameChoice(GameChoice.Choice.NEW);
             }
             scanner.nextLine();
-            // send the command
             sendCommand(Command.Type.GAME_CHOICE, gc);
             serverResponse = (Command)in.readObject();
             System.out.println(((Message)serverResponse.getPayload()).getMsg());
+            serverResponse = (Command)in.readObject();
+            table_info = new InTable(true, ((TableInfo)((Command)in.readObject()).getPayload()).getTableID());
         } catch (IOException e) {
             System.err.println("Error receiving game selection: " + e.getClass().getSimpleName()  + " in ClientMain Line 182.");
         } catch (ClassNotFoundException e2) {
@@ -277,6 +277,14 @@ public class ClientMain {
         boolean reconnected = connectToServer();
         if (reconnected) {
             System.out.println("Reconnected successfully!");
+            Scanner scanner = new Scanner(System.in);
+            if(table_info.getIn()) {
+                sendCommand(Command.Type.RECONNECT, table_info.getTableID());
+                playGame(scanner);
+            } else {
+                handleGameSelection(scanner);
+                playGame(scanner);
+            }
         } else {
             System.out.println("Reconnect attempt failed. Retrying...");
             try { Thread.sleep(3000); } catch (InterruptedException ie) {}

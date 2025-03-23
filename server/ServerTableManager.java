@@ -19,47 +19,50 @@ public class ServerTableManager implements Runnable {
     public void run() {
         int gameId = getInput();
         if (gameId > 0) {
+            sendTableID(gameId);
             ServerMain.waitforGame(gameId, connection);
         } else if (gameId == 0) {
             gameId = ServerMain.addNewGame();
+            sendTableID(gameId);
             ServerMain.waitforGame(gameId, connection);
         } else {
             System.err.println("Invalid input or error occurred.");
         }
     }
+
+    private void sendTableID(int id) {
+        connection.sendCommand(Command.Type.TABLE_INFO, new TableInfo(id));
+    }
     
     private int getInput() {
         try {
-            String message = "Games Available: ";
-            Command response;
-            Integer[] keys = games.keySet().toArray(new Integer[]{});
-            for (int i = 0; i < games.size(); i++) {
-                message += "Game " + keys[i] + ": " + games.get(keys[i]).size() + "/" 
-                           + ServerMain.maxplayers + " Players\n";
-            }
-
-            message += "Please input the game number you would like to join, or type 'new' to create a new game.";
-
-            connection.sendCommand(Command.Type.GAMES_LIST, new GameList(message));
-
-            response = (Command) connection.readCommand();
-
-            GameChoice gc = (GameChoice) response.getPayload();
-            
-            if(gc.getChoice() == GameChoice.Choice.NEW) {
-
-                Message msg = new Message("You have created a new table! Waiting for players...");
+            Command response = (Command)connection.readCommand();
+            if(response.getType() == Command.Type.INITIAL_CONN) {
+                String message = "Games Available: ";
+                Integer[] keys = games.keySet().toArray(new Integer[]{});
+                for (int i = 0; i < games.size(); i++) {
+                    message += "Game " + keys[i] + ": " + games.get(keys[i]).size() + "/" 
+                            + ServerMain.maxplayers + " Players\n";
+                }
+                message += "Please input the game number you would like to join, or type 'new' to create a new game.";
+                connection.sendCommand(Command.Type.GAMES_LIST, new GameList(message));
+                response = (Command) connection.readCommand();
+                GameChoice gc = (GameChoice) response.getPayload();
+                if(gc.getChoice() == GameChoice.Choice.NEW) {
+                    Message msg = new Message("You have created a new table! Waiting for players...");
+                    connection.sendCommand(Command.Type.MESSAGE, msg);
+                    return 0;
+                } else if (gc.getChoice() == GameChoice.Choice.JOIN) {
+                    Message msg = new Message("Joined table " + gc.getId() + " waiting for game start...");
+                    connection.sendCommand(Command.Type.MESSAGE, msg);
+                    return gc.getId();
+                }
+            } else if (response.getType() == Command.Type.RECONNECT) {
+                int id = (int)response.getPayload();
+                Message msg = new Message("Rejoined table " + id + " waiting for game start...");
                 connection.sendCommand(Command.Type.MESSAGE, msg);
-                return 0;
-
-            } else if (gc.getChoice() == GameChoice.Choice.JOIN) {
-
-                Message msg = new Message("Joined table " + gc.getId() + " waiting for game start...");
-                connection.sendCommand(Command.Type.MESSAGE, msg);
-                return gc.getId();
-
+                return (int)response.getPayload();
             }
-
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
