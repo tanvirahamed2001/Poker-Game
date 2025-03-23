@@ -54,6 +54,10 @@ public class ClientMain {
         closeConnection();
     }
 
+    /**
+     * Waits to get an ID assignment from the server, should have after connection is established
+     * @return int ID
+     */
     private static int getIDFromServer() {
         try{
             // wait for assigned player id
@@ -73,7 +77,7 @@ public class ClientMain {
     /**
      * Gets the current players information
      * @param scanner
-     * @return Player
+     * @return Player Object
      */
     private static Player getPlayerInfo(Scanner scanner, int id) {
         System.out.print("Enter your name: ");
