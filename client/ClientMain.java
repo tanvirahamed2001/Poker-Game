@@ -110,8 +110,12 @@ public class ClientMain {
             System.out.println("Opening new output stream Line 110.");
             out = new ObjectOutputStream(socket.getOutputStream());
             out.flush();
+
             System.out.println("Opening new input stream Line 110.");
+
             in = new ObjectInputStream(socket.getInputStream());
+            
+            System.out.println("Opening finished opening streams! Line 115.");
         } catch (IOException e) {
             System.err.println("Failed to setup object input and output streams: " + e.getClass().getSimpleName() + " in ClientMain Line 134.");
             return false;
