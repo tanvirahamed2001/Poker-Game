@@ -36,7 +36,7 @@ public class ServerTableManager implements Runnable {
     
     private int getInput() {
         try {
-            Command response = (Command)connection.readCommand();
+            Command response = (Command)connection.readCommand();;
             if(response.getType() == Command.Type.INITIAL_CONN) {
                 String message = "Games Available: ";
                 Integer[] keys = games.keySet().toArray(new Integer[]{});
