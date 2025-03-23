@@ -1,6 +1,8 @@
 package shared.communication_objects;
 
-public class TableInfo {
+import java.io.Serializable;
+
+public class TableInfo implements Serializable {
 
     private int tableID;
 
