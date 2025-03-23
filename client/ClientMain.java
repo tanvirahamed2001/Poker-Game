@@ -86,28 +86,8 @@ public class ClientMain {
     }
 
     /**
-     * Get generic object from the server. 
-     * Can be Players at this point.
-     * Update as we expand project.
-     * TODO: Thread this as a possible listener
-     */
-    private static void getObjectData() {
-        try {
-            Object obj = in.readObject();
-            if(obj instanceof Player) {
-                updatePlayer((Player)obj);
-            }
-        } catch(IOException e) {
-            //TODO: combine or keep seperate with generic expections
-            e.printStackTrace();
-        } catch(Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
      * Update the player with the new server variation
-     * @param updatedPlayer
+     * @param updatedPlayer sent from server
      */
     private static void updatePlayer(Player updatedPlayer) {
         player = updatedPlayer;
