@@ -19,19 +19,14 @@ public class ServerTableManager implements Runnable {
     public void run() {
         int gameId = getInput();
         if (gameId > 0) {
-            sendTableID(gameId);
             ServerMain.waitforGame(gameId, connection);
         } else if (gameId == 0) {
             gameId = ServerMain.addNewGame();
-            sendTableID(gameId);
+            connection.sendCommand(Command.Type.TABLE_INFO, new TableInfo(gameId));
             ServerMain.waitforGame(gameId, connection);
         } else {
             System.err.println("Invalid input or error occurred.");
         }
-    }
-
-    private void sendTableID(int id) {
-        connection.sendCommand(Command.Type.TABLE_INFO, new TableInfo(id));
     }
     
     private int getInput() {
@@ -55,6 +50,7 @@ public class ServerTableManager implements Runnable {
                 } else if (gc.getChoice() == GameChoice.Choice.JOIN) {
                     Message msg = new Message("Joined table " + gc.getId() + " waiting for game start...");
                     connection.sendCommand(Command.Type.MESSAGE, msg);
+                    connection.sendCommand(Command.Type.TABLE_INFO, new TableInfo(gc.getId()));
                     return gc.getId();
                 }
             } else if (response.getType() == Command.Type.RECONNECT) {
