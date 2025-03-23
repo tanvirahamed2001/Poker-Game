@@ -163,7 +163,6 @@ public class ClientMain {
             sendCommand(Command.Type.GAME_CHOICE, gc);
             serverResponse = (Command)in.readObject();
             System.out.println(((Message)serverResponse.getPayload()).getMsg());
-            serverResponse = (Command)in.readObject();
             table_info = new InTable(true, ((TableInfo)((Command)in.readObject()).getPayload()).getTableID());
         } catch (IOException e) {
             System.err.println("Error receiving game selection: " + e.getClass().getSimpleName()  + " in ClientMain Line 182.");
