@@ -36,8 +36,7 @@ public class ServerMain {
         }
         if (gameConnections.size() < maxplayers) {
             gameConnections.add(connection);
-            System.out.println("A player has been added to Game " + key + "! Currently " 
-                               + gameConnections.size() + "/" + maxplayers);
+            System.out.println("A player has been added to Game " + key + "! Currently " + gameConnections.size() + "/" + maxplayers);
             if (gameConnections.size() == maxplayers) { 
                 if(reconnect) {
                     ServerTable oldTable = ServerTable.getInstance(key);
