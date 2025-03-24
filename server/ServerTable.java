@@ -76,8 +76,8 @@ public class ServerTable implements Runnable {
         return gameInstances.get(gameId);
     }
 
-    public void reconnectPlayer(PlayerConnection pc) {
-        connections.add(pc);
+    public void reconnectPlayers(ArrayList<PlayerConnection> pcs) {
+        connections = pcs;
     }
 
     public int getTableID() {

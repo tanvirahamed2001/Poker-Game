@@ -41,6 +41,7 @@ public class ServerMain {
             if (gameConnections.size() == maxplayers) { 
                 if(reconnect) {
                     ServerTable oldTable = ServerTable.getInstance(key);
+                    oldTable.reconnectPlayers(gameConnections);
                     Message msg = new Message("Rejoined table " + oldTable.getTableID()+ " waiting for game start...");
                     connection.sendCommand(Command.Type.MESSAGE, msg);
                     gamepool.submit(oldTable);
