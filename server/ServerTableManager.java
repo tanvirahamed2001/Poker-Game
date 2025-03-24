@@ -57,8 +57,6 @@ public class ServerTableManager implements Runnable {
                 }
             } else if (response.getType() == Command.Type.RECONNECT) {
                 int id = (int)response.getPayload();
-                Message msg = new Message("Rejoined table " + id + " waiting for game start...");
-                connection.sendCommand(Command.Type.MESSAGE, msg);
                 recon = true;
                 return (int)response.getPayload();
             }

@@ -80,6 +80,10 @@ public class ServerTable implements Runnable {
         connections.add(pc);
     }
 
+    public int getTableID() {
+        return gameId;
+    }
+
     // Called to update the game state (via replication).
     public synchronized void updateState(GameState state) {
         this.players = state.getPlayers();
