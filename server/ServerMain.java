@@ -28,7 +28,7 @@ public class ServerMain {
         }
     }
     
-    public static int waitforGame(int key, PlayerConnection connection) {
+    public static int waitforGame(int key, PlayerConnection connection, boolean reconnect) {
         ArrayList<PlayerConnection> gameConnections = matching_games.get(key);
         if (gameConnections == null) {
             gameConnections = new ArrayList<>();
@@ -39,7 +39,12 @@ public class ServerMain {
             System.out.println("A player has been added to Game " + key + "! Currently " 
                                + gameConnections.size() + "/" + maxplayers);
             if (gameConnections.size() == maxplayers) { 
-                gamepool.submit(new ServerTable(key, gameConnections));
+                if(reconnect) {
+                    ServerTable.getInstance(key).reconnectPlayer(connection);
+                    gamepool.submit(ServerTable.getInstance(key));
+                } else {
+                    gamepool.submit(new ServerTable(key, gameConnections));
+                }
             }
             return 0;
         } else {

@@ -10,20 +10,22 @@ import shared.communication_objects.*;
 public class ServerTableManager implements Runnable {
     private PlayerConnection connection;
     private static HashMap<Integer, ArrayList<PlayerConnection>> games = ServerMain.getGames();
+    private static boolean recon;
 
     public ServerTableManager(PlayerConnection pc) {
         this.connection = pc;
+        recon = false;
     }
     
     @Override
     public void run() {
         int gameId = getInput();
         if (gameId > 0) {
-            ServerMain.waitforGame(gameId, connection);
+            ServerMain.waitforGame(gameId, connection, recon);
         } else if (gameId == 0) {
             gameId = ServerMain.addNewGame();
             connection.sendCommand(Command.Type.TABLE_INFO, new TableInfo(gameId));
-            ServerMain.waitforGame(gameId, connection);
+            ServerMain.waitforGame(gameId, connection, recon);
         } else {
             System.err.println("Invalid input or error occurred.");
         }
@@ -31,7 +33,8 @@ public class ServerTableManager implements Runnable {
     
     private int getInput() {
         try {
-            Command response = (Command)connection.readCommand();;
+            recon = false;
+            Command response = (Command)connection.readCommand();
             if(response.getType() == Command.Type.INITIAL_CONN) {
                 String message = "Games Available: ";
                 Integer[] keys = games.keySet().toArray(new Integer[]{});
@@ -57,6 +60,7 @@ public class ServerTableManager implements Runnable {
                 int id = (int)response.getPayload();
                 Message msg = new Message("Rejoined table " + id + " waiting for game start...");
                 connection.sendCommand(Command.Type.MESSAGE, msg);
+                recon = true;
                 return (int)response.getPayload();
             }
         } catch (IOException | ClassNotFoundException e) {
