@@ -49,10 +49,13 @@ public class ServerTable implements Runnable {
 
     // Game state fields.
     private ArrayList<Card> tablecards;
-    private int currentbet, lastActive, currentplayer, pot, currentTurn;
+    private int currentbet, lastActive, currentplayer, pot, currentTurn, numPlayers;
     private ArrayList<Integer> currentBets;
     private boolean activePlayers[];
     private boolean roundCompleted, activeCheck;
+    private boolean inprogress = false;
+    private Deck deck;
+
     public ServerTable(int gameId, ArrayList<PlayerConnection> connections) {
         this.gameId = gameId;
         this.connections = connections;
@@ -78,33 +81,41 @@ public class ServerTable implements Runnable {
         this.pot = state.getPot();
         this.currentTurn = state.getCurrentTurn();
         this.tablecards = state.getTableCards();
+        this.inprogress = state.getProgress();
+        this.currentplayer = state.getCurrentPlayer();
+        this.lastActive = this.currentplayer;
+        this.deck = state.getSavedDeck();
         System.out.println("Game " + gameId + " state updated from snapshot.");
     }
 
     @Override
     public void run() {
-        System.out.println("Game Started!");
-        sendAllPlayers(Command.Type.MESSAGE, new Message("The Game has Begun!"));
-    
-        int numPlayers = connections.size();
-        activePlayers = new boolean[numPlayers];
-        pot = 0;
-        currentTurn = 1;
-        currentbet = 0;
-        Deck deck = new Deck();
-        currentplayer = 0;
-        currentBets = new ArrayList<>();
-        tablecards = new ArrayList<>();
-    
-        // Initialize players: mark all active, deal two cards each, and set initial bets.
-        for (int i = 0; i < numPlayers; i++) {
-            activePlayers[i] = true;
-            players.get(i).new_card(deck.deal_card());
-            players.get(i).new_card(deck.deal_card());
-            sendPlayer(Command.Type.MESSAGE, new Message("Your cards are: " + players.get(i).show_all_cards()), i);
-            currentBets.add(0);
+
+        if(!inprogress) {
+            System.out.println("Game Started!");
+            sendAllPlayers(Command.Type.MESSAGE, new Message("The Game has Begun!"));
+            numPlayers = connections.size();
+            activePlayers = new boolean[numPlayers];
+            pot = 0;
+            currentTurn = 1;
+            currentbet = 0;
+            deck = new Deck();
+            currentplayer = 0;
+            currentBets = new ArrayList<>();
+            tablecards = new ArrayList<>();
+            inprogress = true;
+            // Initialize players: mark all active, deal two cards each, and set initial bets.
+            for (int i = 0; i < numPlayers; i++) {
+                activePlayers[i] = true;
+                players.get(i).new_card(deck.deal_card());
+                players.get(i).new_card(deck.deal_card());
+                sendPlayer(Command.Type.MESSAGE, new Message("Your cards are: " + players.get(i).show_all_cards()), i);
+                currentBets.add(0);
+            }
+            lastActive = currentplayer;
+        } else {
+            sendAllPlayers(Command.Type.MESSAGE, new Message("Resuming table!"));
         }
-        lastActive = currentplayer;
     
         // Main game loop for each street until showdown.
         while (currentTurn <= 5) {
@@ -297,7 +308,7 @@ public class ServerTable implements Runnable {
     }
     
     private void replicateGameState() {
-        GameState currentState = new GameState(gameId, players, pot, currentTurn, tablecards);
+        GameState currentState = new GameState(gameId, players, pot, currentTurn, tablecards, inprogress, currentplayer, deck);
         ReplicationManager.getInstance(true).sendStateUpdate(currentState);
         for(PlayerConnection pc : connections) {
 

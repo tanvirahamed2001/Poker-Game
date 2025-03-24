@@ -3,7 +3,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 
 import shared.Player;
-import shared.card_based.Card;
+import shared.card_based.*;
 
 public class GameState implements Serializable {
     private int gameId;
@@ -11,17 +11,31 @@ public class GameState implements Serializable {
     private int pot;
     private int currentTurn;
     private ArrayList<Card> tableCards;
+    private boolean inprogress;
+    private int currentPlayer;
+    private Deck saveDeck;
 
-    public GameState(int gameId, ArrayList<Player> players, int pot, int currentTurn, ArrayList<Card> tableCards) {
+    public GameState(int gameId, ArrayList<Player> players, int pot, int currentTurn, ArrayList<Card> tableCards, boolean inprogress, int currentPlayer, Deck savedDeck) {
         this.gameId = gameId;
         this.players = players;
         this.pot = pot;
         this.currentTurn = currentTurn;
         this.tableCards = tableCards;
+        this.inprogress = inprogress;
+        this.currentPlayer = currentPlayer;
+        this.saveDeck = savedDeck;
     }
 
     public int getGameId() {
         return gameId;
+    }
+    
+    public Deck getSavedDeck() {
+        return this.saveDeck;
+    }
+
+    public int getCurrentPlayer() {
+        return this.currentPlayer;
     }
 
     public ArrayList<Player> getPlayers() {
@@ -40,11 +54,18 @@ public class GameState implements Serializable {
         return tableCards;
     }
 
-    public void updateGameState(int gameId,  ArrayList<Player> players, int pot, int currentTurn, ArrayList<Card> tablecards) {
+    public boolean getProgress() {
+        return inprogress;
+    }
+
+    public void updateGameState(int gameId,  ArrayList<Player> players, int pot, int currentTurn, ArrayList<Card> tablecards, boolean inprogress, int currentPlayer, Deck savedDeck) {
         this.gameId = gameId;
         this.players = players;
         this.pot = pot;
         this.currentTurn = currentTurn;
         this.tableCards = tablecards;
+        this.inprogress = inprogress;
+        this.currentPlayer = currentPlayer;
+        this.saveDeck = savedDeck;
     }
 }
