@@ -14,7 +14,6 @@ public class ServerTableManager implements Runnable {
 
     public ServerTableManager(PlayerConnection pc) {
         this.connection = pc;
-        recon = false;
     }
     
     @Override
