@@ -78,7 +78,8 @@ public class ServerTable implements Runnable {
 
     // Called to update the game state (via replication).
     public synchronized void updateState(GameState state) {
-        this.players = state.getPlayers();
+        System.out.println("UPDATING LOCAL GAME STATE IN SERVER TABLE LINE 81");
+        System.out.println(state.toString());
         this.pot = state.getPot();
         this.currentTurn = state.getCurrentTurn();
         this.tablecards = state.getTableCards();
