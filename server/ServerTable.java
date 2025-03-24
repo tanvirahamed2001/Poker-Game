@@ -53,13 +53,14 @@ public class ServerTable implements Runnable {
     private ArrayList<Integer> currentBets;
     private boolean activePlayers[];
     private boolean roundCompleted, activeCheck;
-    private boolean inprogress = false;
+    private boolean inprogress;
     private Deck deck;
 
     public ServerTable(int gameId, ArrayList<PlayerConnection> connections) {
         this.gameId = gameId;
         this.connections = connections;
         this.players = new ArrayList<>();
+        this.inprogress = false;
         for (PlayerConnection pc : connections) {
             players.add(pc.getPlayer());
             try {
@@ -90,7 +91,6 @@ public class ServerTable implements Runnable {
 
     @Override
     public void run() {
-
         if(!inprogress) {
             System.out.println("Game Started!");
             sendAllPlayers(Command.Type.MESSAGE, new Message("The Game has Begun!"));
@@ -116,7 +116,6 @@ public class ServerTable implements Runnable {
         } else {
             sendAllPlayers(Command.Type.MESSAGE, new Message("Resuming table!"));
         }
-    
         // Main game loop for each street until showdown.
         while (currentTurn <= 5) {
             replicateGameState();
@@ -310,9 +309,6 @@ public class ServerTable implements Runnable {
     private void replicateGameState() {
         GameState currentState = new GameState(gameId, players, pot, currentTurn, tablecards, inprogress, currentplayer, deck);
         ReplicationManager.getInstance(true).sendStateUpdate(currentState);
-        for(PlayerConnection pc : connections) {
-
-        }
     }
     
     // The determine_winner(), check_other(), check_flush(), and check_straight methods remain unchanged.
