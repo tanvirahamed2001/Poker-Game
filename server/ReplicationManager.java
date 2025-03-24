@@ -142,6 +142,8 @@ public class ReplicationManager {
     
     // NEW: Save the replicated game state and update the corresponding game table.
     private void updateLocalGameState(GameState state) {
+        System.out.println("UPDATING LOCAL GAME STATE");
+        System.out.println(state.toString());
         replicatedGameStates.put(state.getGameId(), state);
         ServerTable currentTable = ServerTable.getInstance(state.getGameId());
         if (currentTable != null) {

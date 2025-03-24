@@ -68,4 +68,9 @@ public class GameState implements Serializable {
         this.currentPlayer = currentPlayer;
         this.saveDeck = savedDeck;
     }
+
+    @Override
+    public String toString() {
+        return this.gameId + " " + this.players + " " + this.pot + " " + this.currentTurn + " " + this.tableCards + " " + this.inprogress + " " + this.currentPlayer + " " + this.saveDeck;
+    }
 }
