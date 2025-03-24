@@ -78,8 +78,7 @@ public class ServerTable implements Runnable {
 
     // Called to update the game state (via replication).
     public synchronized void updateState(GameState state) {
-        System.out.println("UPDATING LOCAL GAME STATE IN SERVER TABLE LINE 81");
-        System.out.println(state.toString());
+        this.players = state.getPlayers();
         this.pot = state.getPot();
         this.currentTurn = state.getCurrentTurn();
         this.tablecards = state.getTableCards();
@@ -115,7 +114,8 @@ public class ServerTable implements Runnable {
             }
             lastActive = currentplayer;
         } else {
-            sendAllPlayers(Command.Type.MESSAGE, new Message("Resuming table!"));
+            System.out.println("Game " + this.gameId + " is resuming!");
+            sendAllPlayers(Command.Type.MESSAGE, new Message("Resuming Table " + this.gameId));
         }
         // Main game loop for each street until showdown.
         while (currentTurn <= 5) {
