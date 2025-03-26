@@ -95,4 +95,9 @@ public class Player implements Serializable {
         }
         return 0; // Indicates an invalid bet
     }
+
+    @Override
+    public String toString() {
+        return "Player Name: " + this.name + " Funds: " + this.funds; 
+    }
 }

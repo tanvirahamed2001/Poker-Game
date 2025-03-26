@@ -286,14 +286,6 @@ public class ClientMain {
             if(table_info.getIn()) {
                 System.out.println("In table before disconnect...attempting to join table " + table_info.getTableID());
                 sendCommand(Command.Type.RECONNECT, table_info.getTableID());
-                try {
-                    Command cmd = (Command) in.readObject();
-                    Message msg = (Message)cmd.getPayload();
-                    System.out.println(msg.getMsg());
-                    playGame(scanner);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
                 playGame(scanner);
             } else {
                 System.out.println("Client was not in a table, getting table list");

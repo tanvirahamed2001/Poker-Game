@@ -124,6 +124,9 @@ public class ServerTable implements Runnable {
         } else {
             System.out.println("Game " + this.gameId + " is resuming!");
             sendAllPlayers(Command.Type.MESSAGE, new Message("Resuming Table " + this.gameId));
+            for(PlayerConnection pc: connections) {
+                System.out.println(pc.getPlayer().toString());
+            }
         }
         // Main game loop for each street until showdown.
         while (currentTurn <= 5) {
