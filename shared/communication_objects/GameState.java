@@ -6,24 +6,44 @@ import shared.Player;
 import shared.card_based.*;
 
 public class GameState implements Serializable {
-    private int gameId;
+    private int gameId, pot, currentTurn, currentPlayer, lastActive, numPlayers, currentBet;
+    private boolean inprogress, activePlayers[], roundCompleted;
     private ArrayList<Player> players;
-    private int pot;
-    private int currentTurn;
+    private ArrayList<Integer> currentBets;
     private ArrayList<Card> tableCards;
-    private boolean inprogress;
-    private int currentPlayer;
     private Deck saveDeck;
 
-    public GameState(int gameId, ArrayList<Player> players, int pot, int currentTurn, ArrayList<Card> tableCards, boolean inprogress, int currentPlayer, Deck savedDeck) {
+    public GameState(int gameId, int pot, int currentTurn, int currentPlayer, int lastActive, int numPlayers, int currentBet,
+                    boolean inprogress, boolean activePlayers[], boolean roundCompleted,
+                    ArrayList<Player> players,
+                    ArrayList<Integer> currentBets,
+                    ArrayList<Card> tableCards,
+                    Deck deck) {
         this.gameId = gameId;
-        this.players = players;
         this.pot = pot;
         this.currentTurn = currentTurn;
-        this.tableCards = tableCards;
+        this.lastActive = lastActive;
+        this.numPlayers = numPlayers;
+        this.currentBet = currentBet;
         this.inprogress = inprogress;
-        this.currentPlayer = currentPlayer;
-        this.saveDeck = savedDeck;
+        this.activePlayers = activePlayers;
+        this.roundCompleted = roundCompleted;
+        this.players = players;
+        this.currentBets = currentBets;
+        this.tableCards = tableCards;
+        this.saveDeck = deck;
+    }
+
+    public int getLastActive() {
+        return lastActive;
+    }
+
+    public int getNumPlayers() {
+        return numPlayers;
+    }
+
+    public int getCurrentBet() {
+        return currentBet;
     }
 
     public int getGameId() {
@@ -58,15 +78,37 @@ public class GameState implements Serializable {
         return inprogress;
     }
 
-    public void updateGameState(int gameId,  ArrayList<Player> players, int pot, int currentTurn, ArrayList<Card> tablecards, boolean inprogress, int currentPlayer, Deck savedDeck) {
-        this.gameId = gameId;
-        this.players = players;
-        this.pot = pot;
-        this.currentTurn = currentTurn;
-        this.tableCards = tablecards;
-        this.inprogress = inprogress;
-        this.currentPlayer = currentPlayer;
-        this.saveDeck = savedDeck;
+    public boolean[] getActivePlayers() {
+        return activePlayers;
+    }
+
+    public boolean getRoundCompleted() {
+        return roundCompleted;
+    }
+
+    public ArrayList<Integer> getCurrentBets() {
+        return currentBets;
+    }
+
+    public void updateGameState(int gameId, int pot, int currentTurn, int currentPlayer, int lastActive, int numPlayers, int currentBet,
+                            boolean inprogress, boolean activePlayers[], boolean roundCompleted,
+                            ArrayList<Player> players,
+                            ArrayList<Integer> currentBets,
+                            ArrayList<Card> tableCards,
+                            Deck deck) {
+            this.gameId = gameId;
+            this.pot = pot;
+            this.currentTurn = currentTurn;
+            this.lastActive = lastActive;
+            this.numPlayers = numPlayers;
+            this.currentBet = currentBet;
+            this.inprogress = inprogress;
+            this.activePlayers = activePlayers;
+            this.roundCompleted = roundCompleted;
+            this.players = players;
+            this.currentBets = currentBets;
+            this.tableCards = tableCards;
+            this.saveDeck = deck;
     }
 
     @Override

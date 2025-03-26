@@ -52,8 +52,7 @@ public class ServerTable implements Runnable {
     private int currentbet, lastActive, currentplayer, pot, currentTurn, numPlayers;
     private ArrayList<Integer> currentBets;
     private boolean activePlayers[];
-    private boolean roundCompleted, activeCheck;
-    private boolean inprogress;
+    private boolean roundCompleted, activeCheck, inprogress;
     private Deck deck;
 
     public ServerTable(int gameId, ArrayList<PlayerConnection> connections) {
@@ -86,13 +85,17 @@ public class ServerTable implements Runnable {
 
     // Called to update the game state (via replication).
     public synchronized void updateState(GameState state) {
-        this.players = state.getPlayers();
         this.pot = state.getPot();
         this.currentTurn = state.getCurrentTurn();
-        this.tablecards = state.getTableCards();
+        this.lastActive = state.getLastActive();
+        this.numPlayers = state.getNumPlayers();
+        this.currentbet = state.getCurrentBet();
         this.inprogress = state.getProgress();
-        this.currentplayer = state.getCurrentPlayer();
-        this.lastActive = this.currentplayer;
+        this.activePlayers = state.getActivePlayers();
+        this.roundCompleted = state.getRoundCompleted();
+        this.players = state.getPlayers();
+        this.currentBets = state.getCurrentBets();
+        this.tablecards = state.getTableCards();
         this.deck = state.getSavedDeck();
         System.out.println("Game " + gameId + " state updated from snapshot.");
     }
@@ -316,9 +319,8 @@ public class ServerTable implements Runnable {
     }
     
     private void replicateGameState() {
-        GameState currentState = new GameState(gameId, players, pot, currentTurn, tablecards, inprogress, currentplayer, deck);
+        GameState currentState = new GameState(gameId, pot, currentTurn, currentplayer, lastActive, numPlayers, currentbet, inprogress, activePlayers, roundCompleted, players, currentBets, tablecards, deck);
         ReplicationManager.getInstance(true).sendStateUpdate(currentState);
-        System.err.println("Finished replicating game state!");
     }
     
     // The determine_winner(), check_other(), check_flush(), and check_straight methods remain unchanged.
