@@ -266,6 +266,7 @@ public class ClientMain {
                 } catch (Exception e) {
                     System.out.println("Connection lost. Attempting to reconnect...");
                     reconnectToServer();
+                    break;
                 }
             }
         }).start();
