@@ -92,6 +92,7 @@ public class ServerTable implements Runnable {
         this.currentbet = state.getCurrentBet();
         this.inprogress = state.getProgress();
         this.activePlayers = state.getActivePlayers();
+        this.currentplayer = state.getCurrentPlayer();
         this.roundCompleted = state.getRoundCompleted();
         this.players = state.getPlayers();
         this.currentBets = state.getCurrentBets();

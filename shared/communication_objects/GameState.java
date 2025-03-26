@@ -32,6 +32,7 @@ public class GameState implements Serializable {
         this.currentBets = currentBets;
         this.tableCards = tableCards;
         this.saveDeck = deck;
+        this.currentPlayer = currentPlayer;
     }
 
     public int getLastActive() {
@@ -109,6 +110,7 @@ public class GameState implements Serializable {
             this.currentBets = currentBets;
             this.tableCards = tableCards;
             this.saveDeck = deck;
+            this.currentPlayer = currentPlayer;
     }
 
     @Override
