@@ -77,17 +77,19 @@ public class ReplicationManager {
         } else {
             // Use system property "backupId" (default 1) for backups.
             this.serverId = Integer.getInteger("backupId", 1);
-            try {
-                int replicationPort = Integer.getInteger("replicationPort", DEFAULT_REPLICATION_PORT);
-                replicationListener = new ServerSocket(replicationPort);
-                System.out.println("Backup " + serverId + " waiting for primary replication connection on port " + replicationPort);
-                // Block until a primary connects.
-                Socket primarySocket = replicationListener.accept();
-                primaryIn = new ObjectInputStream(primarySocket.getInputStream());
-                new Thread(() -> listenForUpdates()).start();
-                startHeartbeat();
-            } catch (IOException e) {
-                e.printStackTrace();
+            int replicationPort = Integer.getInteger("replicationPort", DEFAULT_REPLICATION_PORT);
+            while(true) {
+                try {
+                    replicationListener = new ServerSocket(replicationPort);
+                    System.out.println("Backup " + serverId + " waiting for primary replication connection on port " + replicationPort);
+                    // Block until a primary connects.
+                    Socket primarySocket = replicationListener.accept();
+                    primaryIn = new ObjectInputStream(primarySocket.getInputStream());
+                    new Thread(() -> listenForUpdates()).start();
+                    startHeartbeat();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         }
         this.allServerIds = Arrays.asList(1, 2, 3, 4);
@@ -133,10 +135,37 @@ public class ReplicationManager {
                     System.out.println("Received non-GameState object: " + obj.getClass().getName());
                 }
             }
-        } catch (EOFException eof) {
-            System.out.println("Replication stream closed. Exiting update listener.");
         } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
+            System.err.println("Replication connection lost: " + e.getMessage());
+            // Cleanup the current connection
+            try {
+                if (primaryIn != null) primaryIn.close();
+                if (replicationListener != null) replicationListener.close();
+            } catch (IOException ex) { }
+            // Reinitialize listener to wait for a new primary connection
+            reinitializeReplicationListener();
+        }
+    }
+
+    private void reinitializeReplicationListener() {
+        // This method contains the same logic as step 1.
+        int replicationPort = Integer.getInteger("replicationPort", DEFAULT_REPLICATION_PORT);
+        while (true) {
+            try {
+                if (replicationListener == null || replicationListener.isClosed()) {
+                    replicationListener = new ServerSocket(replicationPort);
+                    System.out.println("Backup " + serverId + " re-waiting for primary replication connection on port " + replicationPort);
+                }
+                Socket primarySocket = replicationListener.accept();
+                primaryIn = new ObjectInputStream(primarySocket.getInputStream());
+                new Thread(() -> listenForUpdates()).start();
+                lastUpdateTimestamp = System.currentTimeMillis();
+                System.out.println("Reconnected to new primary replication connection.");
+                break;
+            } catch (IOException e) {
+                System.err.println("Retrying replication connection failed: " + e.getMessage());
+                try { Thread.sleep(3000); } catch (InterruptedException ie) { }
+            }
         }
     }
     

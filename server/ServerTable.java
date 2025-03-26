@@ -323,8 +323,10 @@ public class ServerTable implements Runnable {
     }
     
     private void replicateGameState() {
+        System.out.println("Beginning Game " + gameId + " replication!");
         GameState currentState = new GameState(gameId, pot, currentTurn, currentplayer, lastActive, numPlayers, currentbet, inprogress, activePlayers, roundCompleted, players, currentBets, tablecards, deck);
         ReplicationManager.getInstance(true).sendStateUpdate(currentState);
+        System.out.println("Finished Game " + gameId + " replication!");
     }
     
     // The determine_winner(), check_other(), check_flush(), and check_straight methods remain unchanged.
