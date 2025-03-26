@@ -124,9 +124,6 @@ public class ServerTable implements Runnable {
         } else {
             System.out.println("Game " + this.gameId + " is resuming!");
             sendAllPlayers(Command.Type.MESSAGE, new Message("Resuming Table " + this.gameId));
-            for(PlayerConnection pc: connections) {
-                System.out.println(pc.getPlayer().toString());
-            }
         }
         // Main game loop for each street until showdown.
         while (currentTurn <= 5) {
@@ -321,6 +318,7 @@ public class ServerTable implements Runnable {
     private void replicateGameState() {
         GameState currentState = new GameState(gameId, players, pot, currentTurn, tablecards, inprogress, currentplayer, deck);
         ReplicationManager.getInstance(true).sendStateUpdate(currentState);
+        System.err.println("Finished replicating game state!");
     }
     
     // The determine_winner(), check_other(), check_flush(), and check_straight methods remain unchanged.
