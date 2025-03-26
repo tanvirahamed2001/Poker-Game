@@ -75,11 +75,11 @@ public class ReplicationManager {
                 }
             }
         } else {
-            // Use system property "backupId" (default 1) for backups.
-            this.serverId = Integer.getInteger("backupId", 1);
-            int replicationPort = Integer.getInteger("replicationPort", DEFAULT_REPLICATION_PORT);
             while(true) {
                 try {
+                    // Use system property "backupId" (default 1) for backups.
+                    this.serverId = Integer.getInteger("backupId", 1);
+                    int replicationPort = Integer.getInteger("replicationPort", DEFAULT_REPLICATION_PORT);
                     replicationListener = new ServerSocket(replicationPort);
                     System.out.println("Backup " + serverId + " waiting for primary replication connection on port " + replicationPort);
                     // Block until a primary connects.
