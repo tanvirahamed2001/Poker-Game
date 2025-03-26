@@ -58,7 +58,7 @@ public class ServerTableManager implements Runnable {
             } else if (response.getType() == Command.Type.RECONNECT) {
                 int id = (int)response.getPayload();
                 recon = true;
-                return (int)response.getPayload();
+                return id;
             }
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
