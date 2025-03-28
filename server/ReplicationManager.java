@@ -342,10 +342,13 @@ public class ReplicationManager {
             try {
                 Socket backupSocket = new Socket(ep.host, ep.port);
                 backupSockets.add(backupSocket);
+                System.out.println("Reconnected socket from backups...");
                 ObjectOutputStream oos = new ObjectOutputStream(backupSocket.getOutputStream());
                 oos.flush();
                 backupOutputs.add(oos);
+                System.out.println("Reconnected output stream from backups...");
                 ObjectInputStream ois = new ObjectInputStream(backupSocket.getInputStream());
+                System.out.println("Reconnected input stream from backups...");
                 backupInputs.add(ois);
                 System.out.println("New primary connected to backup at " + ep);
             } catch (IOException e) {
