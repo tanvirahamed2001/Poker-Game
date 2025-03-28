@@ -50,7 +50,7 @@ public class ReplicationManager {
     );
     
     // Ports.
-    private final int DEFAULT_REPLICATION_PORT = 6836;
+    private final int DEFAULT_REPLICATION_PORT = 6837;
     private final int CLIENT_PORT = 6834;
     
     // Heartbeat threshold in ms.
