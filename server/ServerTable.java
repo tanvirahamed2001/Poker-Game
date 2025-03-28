@@ -130,7 +130,7 @@ public class ServerTable implements Runnable {
             lastActive = currentplayer;
         } else {
             System.out.println("Game " + this.gameId + " is resuming!");
-            organizeSeats();
+            connections = organizeSeats();
             sendAllPlayers(Command.Type.MESSAGE, new Message("Resuming Table " + this.gameId));
             for (int i = 0; i < numPlayers; i++) {
                 sendPlayer(Command.Type.MESSAGE, new Message("Your cards are: " + players.get(i).show_all_cards()), i);
@@ -232,7 +232,7 @@ public class ServerTable implements Runnable {
         }
     }
 
-    private void organizeSeats() {
+    private ArrayList<PlayerConnection> organizeSeats() {
         System.out.println("Reorganizing player seats...");
         // Map seat numbers to corresponding connections
         Map<Integer, PlayerConnection> seatToConnectionMap = new HashMap<>();
@@ -246,7 +246,7 @@ public class ServerTable implements Runnable {
             sortedConnections.add(seatToConnectionMap.get(i));
         }
         System.out.println("Finished organizing players...");
-        connections = sortedConnections;
+        return sortedConnections;
     }
 
     // This method reads a command from the current active player.

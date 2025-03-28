@@ -209,6 +209,7 @@ public class ClientMain {
                 }
                 if(serverResponse.getType() == Command.Type.CLIENT_UPDATE_PLAYER) {
                     player = (Player)serverResponse.getPayload();
+                    System.out.println("Updating player from server");
                     continue;
                 }
                 if(serverResponse.getType() == Command.Type.TURN_TOKEN) {
