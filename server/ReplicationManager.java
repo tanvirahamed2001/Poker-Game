@@ -118,17 +118,19 @@ public class ReplicationManager {
                 ObjectOutputStream oos = backupOutputs.get(i);
                 ObjectInputStream ois = backupInputs.get(i);
                 try {
+                    System.out.println("Sending game state...");
                     backupSockets.get(i).setSoTimeout(10000);
                     oos.writeObject(state);
                     oos.flush();
+                    System.out.println("Game state sent...");
                     Command response = (Command)ois.readObject();
                     if(response.getType() != Command.Type.REPLICATION_ACK) {
-                        throw new ReplicationExecption("No Ack From Backup!");
+                        throw new ReplicationExecption("No Ack From Backup...");
                     } else {
-                        System.out.println("Recived replication ACK");
+                        System.out.println("Recived replication ACK...");
                     }
                 } catch (IOException | ClassNotFoundException | ReplicationExecption e) {
-                    System.err.println("Error sending state to a backup; removing connection.");
+                    System.err.println("Error sending state to a backup; removing connection...");
                     backupSockets.remove(i);
                     backupOutputs.remove(i);
                     backupInputs.remove(i);
