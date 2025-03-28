@@ -11,6 +11,7 @@ public class Player implements Serializable {
     private int funds;
     private ArrayList<Card> hand;
     private int client_id;
+    private int seat;
 
     /**
      * Creates a new Player object from client information.
@@ -30,6 +31,14 @@ public class Player implements Serializable {
      */
     public String get_name() {
         return this.name;
+    }
+
+    public void set_seat(int i) {
+        this.seat = i;
+    }
+
+    public int get_seat() {
+        return this.seat;
     }
 
     /**

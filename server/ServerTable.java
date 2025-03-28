@@ -23,6 +23,7 @@ after all the turns are done, calculate who has the best hand and give them the 
 
 
 import java.io.IOException;
+import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
@@ -30,6 +31,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import shared.Player;
 import shared.PlayerConnection;
@@ -106,6 +108,7 @@ public class ServerTable implements Runnable {
         if(!inprogress) {
             System.out.println("Game Started!");
             sendAllPlayers(Command.Type.MESSAGE, new Message("The Game has Begun!"));
+            assignSeats();
             numPlayers = connections.size();
             activePlayers = new boolean[numPlayers];
             pot = 0;
@@ -127,6 +130,7 @@ public class ServerTable implements Runnable {
             lastActive = currentplayer;
         } else {
             System.out.println("Game " + this.gameId + " is resuming!");
+            organizeSeats();
             sendAllPlayers(Command.Type.MESSAGE, new Message("Resuming Table " + this.gameId));
             for (int i = 0; i < numPlayers; i++) {
                 sendPlayer(Command.Type.MESSAGE, new Message("Your cards are: " + players.get(i).show_all_cards()), i);
@@ -219,6 +223,30 @@ public class ServerTable implements Runnable {
         for (int i = 0; i < currentBets.size(); i++) {
             currentBets.set(i, 0);
         }
+    }
+
+    private void assignSeats() {
+        for(int i = 0; i < connections.size(); i++){
+            connections.get(i).getPlayer().set_seat(i);
+            sendPlayer(Command.Type.CLIENT_UPDATE_PLAYER, players.get(i), i);
+        }
+    }
+
+    private void organizeSeats() {
+        // Map seat numbers to corresponding connections
+        Map<Integer, PlayerConnection> seatToConnectionMap = new HashMap<>();
+        for (int i = 0; i < players.size(); i++) {
+            Player player = players.get(i);
+            seatToConnectionMap.put((Integer)player.get_seat(), connections.get(i));
+        }
+
+        // Create a sorted list based on seat numbers
+        ArrayList<PlayerConnection> sortedConnections = new ArrayList<>();
+        for (int i = 1; i <= players.size(); i++) {
+            sortedConnections.add(seatToConnectionMap.get(i));
+        }
+
+        connections = sortedConnections;
     }
 
     // This method reads a command from the current active player.

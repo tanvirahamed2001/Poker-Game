@@ -11,7 +11,10 @@ public class Command implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    public enum Type {GAMES_LIST, PLAYER_INFO, TURN_CHOICE, GAME_CHOICE, MESSAGE, GAME_OVER, TURN_TOKEN, ELECTION, HEARTBEAT, SERVER_CLIENT_ID, TABLE_INFO, RECONNECT, INITIAL_CONN, CLIENT_UPDATE_PLAYER, REPLICATION_ACK}
+    public enum Type {
+                    GAMES_LIST, PLAYER_INFO, TURN_CHOICE, GAME_CHOICE, MESSAGE, GAME_OVER, TURN_TOKEN, ELECTION, 
+                    HEARTBEAT, SERVER_CLIENT_ID, TABLE_INFO, RECONNECT, INITIAL_CONN, 
+                    CLIENT_UPDATE_PLAYER, REPLICATION_ACK, SEAT}
 
     private Type type;
     private Object payload;
