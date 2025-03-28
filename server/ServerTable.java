@@ -135,6 +135,7 @@ public class ServerTable implements Runnable {
             for (int i = 0; i < numPlayers; i++) {
                 sendPlayer(Command.Type.MESSAGE, new Message("Your cards are: " + players.get(i).show_all_cards()), i);
             }
+            System.out.println((new GameState(gameId, pot, currentTurn, currentplayer, lastActive, numPlayers, currentbet, inprogress, activePlayers, roundCompleted, players, currentBets, tablecards, deck)).toString());
         }
         // Main game loop for each street until showdown.
         while (currentTurn <= 5) {
