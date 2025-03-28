@@ -236,13 +236,12 @@ public class ServerTable implements Runnable {
         System.out.println("Reorganizing player seats...");
         // Map seat numbers to corresponding connections
         Map<Integer, PlayerConnection> seatToConnectionMap = new HashMap<>();
-        for (int i = 0; i < players.size(); i++) {
-            Player player = players.get(i);
-            seatToConnectionMap.put((Integer)player.get_seat(), connections.get(i));
+        for (int i = 0; i < connections.size(); i++) {
+            seatToConnectionMap.put((Integer)connections.get(i).getPlayer().get_seat(), connections.get(i));
         }
         // Create a sorted list based on seat numbers
         ArrayList<PlayerConnection> sortedConnections = new ArrayList<>();
-        for (int i = 1; i <= players.size(); i++) {
+        for (int i = 0; i < connections.size(); i++) {
             sortedConnections.add(seatToConnectionMap.get(i));
         }
         System.out.println("Finished organizing players...");
