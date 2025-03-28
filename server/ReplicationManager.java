@@ -124,6 +124,8 @@ public class ReplicationManager {
                     Command response = (Command)ois.readObject();
                     if(response.getType() != Command.Type.REPLICATION_ACK) {
                         throw new ReplicationExecption("No Ack From Backup!");
+                    } else {
+                        System.out.println("Recived replication ACK");
                     }
                 } catch (IOException | ClassNotFoundException | ReplicationExecption e) {
                     System.err.println("Error sending state to a backup; removing connection.");
@@ -152,6 +154,7 @@ public class ReplicationManager {
                     lastUpdateTimestamp = System.currentTimeMillis();
                     System.out.println("Received and applied GameState update for game " +
                                        receivedState.getGameId());
+                    System.out.println("Now sending ACK to primary server");
                     primaryOut.writeObject(new Command(Command.Type.REPLICATION_ACK, "ack"));
                     primaryOut.flush();
                 } else {
