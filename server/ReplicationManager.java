@@ -12,10 +12,12 @@ public class ReplicationManager {
     // For primary mode: store backup sockets and their output streams.
     private List<Socket> backupSockets = new ArrayList<>();
     private List<ObjectOutputStream> backupOutputs = new ArrayList<>();
+    private List<ObjectInputStream> backupInputs = new ArrayList<>();
     
     // For backup mode: a ServerSocket to listen for replication updates and an ObjectInputStream for the primary.
     private ServerSocket replicationListener;
     private ObjectInputStream primaryIn;
+    private ObjectOutputStream primaryOut;
     
     // Heartbeat timer for detecting failure.
     private Timer heartbeatTimer;
@@ -43,7 +45,8 @@ public class ReplicationManager {
     private final List<Endpoint> backupEndpoints = Arrays.asList(
         new Endpoint("localhost", 6836),
         new Endpoint("localhost", 6837),
-        new Endpoint("localhost", 6838)
+        new Endpoint("localhost", 6838),
+        new Endpoint("localhost", 6839)
     );
     
     // Ports.
@@ -69,6 +72,8 @@ public class ReplicationManager {
                     ObjectOutputStream oos = new ObjectOutputStream(s.getOutputStream());
                     oos.flush();
                     backupOutputs.add(oos);
+                    ObjectInputStream ois = new ObjectInputStream(s.getInputStream());
+                    backupInputs.add(ois);
                     System.out.println("Primary connected to backup at " + ep);
                 } catch (IOException e) {
                     System.err.println("Primary failed to connect to backup at " + ep);
@@ -86,6 +91,7 @@ public class ReplicationManager {
                     }
                     Socket primarySocket = replicationListener.accept();
                     primaryIn = new ObjectInputStream(primarySocket.getInputStream());
+                    primaryOut = new ObjectOutputStream(primarySocket.getOutputStream());
                     new Thread(() -> listenForUpdates()).start();
                     startHeartbeat();
                     break; // Successfully connected—exit the loop.
@@ -94,7 +100,7 @@ public class ReplicationManager {
                 }
             }
         }
-        this.allServerIds = Arrays.asList(1, 2, 3, 4);
+        this.allServerIds = Arrays.asList(1, 2, 3, 4, 5);
         startElectionListener();
     }
     
@@ -108,20 +114,33 @@ public class ReplicationManager {
     // Called by the primary to broadcast GameState updates.
     public synchronized void sendStateUpdate(GameState state) {
         if (isPrimary) {
-            Iterator<ObjectOutputStream> it = backupOutputs.iterator();
-            while (it.hasNext()) {
-                ObjectOutputStream oos = it.next();
+            for(int i = 0; i < backupSockets.size(); i++) {
+                ObjectOutputStream oos = backupOutputs.get(i);
+                ObjectInputStream ois = backupInputs.get(i);
                 try {
+                    backupSockets.get(i).setSoTimeout(10000);
                     oos.writeObject(state);
                     oos.flush();
-                } catch (IOException e) {
+                    Command response = (Command)ois.readObject();
+                    if(response.getType() != Command.Type.REPLICATION_ACK) {
+                        throw new ReplicationExecption("No Ack From Backup!");
+                    }
+                } catch (IOException | ClassNotFoundException | ReplicationExecption e) {
                     System.err.println("Error sending state to a backup; removing connection.");
-                    it.remove();
+                    backupSockets.remove(i);
+                    backupOutputs.remove(i);
+                    backupInputs.remove(i);
                 }
             }
         }
     }
     
+    class ReplicationExecption extends Exception {
+        public ReplicationExecption(String msg) {
+            super(msg);
+        }
+    }
+
     // Backups listen for state updates from the primary.
     private void listenForUpdates() {
         try {
@@ -133,6 +152,8 @@ public class ReplicationManager {
                     lastUpdateTimestamp = System.currentTimeMillis();
                     System.out.println("Received and applied GameState update for game " +
                                        receivedState.getGameId());
+                    primaryOut.writeObject(new Command(Command.Type.REPLICATION_ACK, "ack"));
+                    primaryOut.flush();
                 } else {
                     System.out.println("Received non-GameState object: " + obj.getClass().getName());
                 }
