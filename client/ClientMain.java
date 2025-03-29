@@ -34,7 +34,6 @@ public class ClientMain {
             sendCommand(Command.Type.PLAYER_INFO, player);
             handleGameSelection(scanner);
             playGame(scanner);
-
         } else {
             System.out.println("Failed to connect to the server. Please try again later.");
         }
@@ -158,9 +157,8 @@ public class ClientMain {
      */
     private static void playGame(Scanner scanner) {
         try {
-            serverConnection.setTimeout(10000);
             while(true) {
-                Command serverResponse = (Command) serverConnection.read();
+                Command serverResponse = (Command)serverConnection.read();
                 if(serverResponse.getType() == Command.Type.GAME_OVER) {
                     System.out.println("Game Over! Exiting!");
                     break;
