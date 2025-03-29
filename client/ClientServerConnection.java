@@ -48,7 +48,6 @@ public class ClientServerConnection {
         try {
             return primaryIn.readObject();
         } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
             return null;
         }
     }
