@@ -57,15 +57,12 @@ public class ClientServerConnection {
         try {
             if (primaryIn != null) {
                 primaryIn.close();
-                System.out.println("Closed primary input..");
             }
             if (primaryOut != null) {
                  primaryOut.close();
-                System.out.println("Closed primary output...");
             }
             if (primarySocket != null) {
                 primarySocket.close();
-                System.out.println("Closed primary replication listener...");
             }
         } catch (IOException e) {
             e.printStackTrace();

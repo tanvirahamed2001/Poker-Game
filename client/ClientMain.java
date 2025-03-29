@@ -240,7 +240,6 @@ public class ClientMain {
     private static void reconnectToServer() {
         // Close any existing resources.
         serverConnection.closeConnections();
-        serverConnection = null;
         boolean reconnected = connectToServer();
         if (reconnected) {
             System.out.println("Reconnected successfully!");
