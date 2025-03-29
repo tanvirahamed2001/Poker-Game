@@ -50,7 +50,7 @@ public class ReplicationManager {
     );
     
     // Ports.
-    private final int DEFAULT_REPLICATION_PORT = 6837;
+    private final int DEFAULT_REPLICATION_PORT = 6836;
     private final int CLIENT_PORT = 6834;
     
     // Heartbeat threshold in ms.
@@ -226,11 +226,22 @@ public class ReplicationManager {
                 long now = System.currentTimeMillis();
                 if (now - lastUpdateTimestamp > HEARTBEAT_THRESHOLD) {
                     System.out.println("No update received in threshold time. Initiating election.");
+                    terminateDeadPrimary();
                     startElection();
                     lastUpdateTimestamp = now;
                 }
             }
         }, HEARTBEAT_THRESHOLD, HEARTBEAT_THRESHOLD);
+    }
+
+    private void terminateDeadPrimary() {
+        try {
+            replicationListener.close();
+            primaryIn.close();
+            primaryOut.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
     
     // Election-related methods (startElection, sendElectionMessage, startElectionListener) follow...
@@ -342,7 +353,6 @@ public class ReplicationManager {
         for (Endpoint ep : backupEndpoints) {
             try {
                 Socket backupSocket = new Socket(ep.host, ep.port);
-                backupSocket.getInputStream().close();
                 System.out.println("Reconnected socket from backups...");
                 ObjectOutputStream oos = new ObjectOutputStream(backupSocket.getOutputStream());
                 oos.flush();
