@@ -16,6 +16,7 @@ public class ReplicationManager {
     
     // For backup mode: a ServerSocket to listen for replication updates and an ObjectInputStream for the primary.
     private ServerSocket replicationListener;
+    private Socket primarySocket;
     private ObjectInputStream primaryIn;
     private ObjectOutputStream primaryOut;
     
@@ -89,7 +90,7 @@ public class ReplicationManager {
                         replicationListener = new ServerSocket(replicationPort);
                         System.out.println("Backup " + serverId + " waiting for primary replication connection on port " + replicationPort);
                     }
-                    Socket primarySocket = replicationListener.accept();
+                    primarySocket = replicationListener.accept();
                     primaryIn = new ObjectInputStream(primarySocket.getInputStream());
                     primaryOut = new ObjectOutputStream(primarySocket.getOutputStream());
                     new Thread(() -> listenForUpdates()).start();
@@ -197,8 +198,9 @@ public class ReplicationManager {
                     replicationListener = new ServerSocket(replicationPort);
                     System.out.println("Backup " + serverId + " re-waiting for primary replication connection on port " + replicationPort);
                 }
-                Socket primarySocket = replicationListener.accept();
+                primarySocket = replicationListener.accept();
                 primaryIn = new ObjectInputStream(primarySocket.getInputStream());
+                primaryOut = new ObjectOutputStream(primarySocket.getOutputStream());
                 new Thread(() -> listenForUpdates()).start();
                 lastUpdateTimestamp = System.currentTimeMillis();
                 System.out.println("Reconnected to new primary replication connection.");
