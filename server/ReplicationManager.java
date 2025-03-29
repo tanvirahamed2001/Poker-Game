@@ -289,8 +289,9 @@ public class ReplicationManager {
                 while (true) {
                     Socket socket = electionSocket.accept();
                     new Thread(() -> {
-                        try (ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
-                             ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream())) {
+                        try (
+                            ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+                            ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());) {
                             Command electionCmd = (Command) ois.readObject();
                             if (electionCmd.getType() == Command.Type.ELECTION) {
                                 Election election = (Election) electionCmd.getPayload();
