@@ -32,7 +32,8 @@ public class ClientMain {
         if (connectToServer()) {
             id = getIDFromServer();
             player = getPlayerInfo(scanner, id);
-            System.out.println(String.format("Connected to the game server with name %s and funds %d!", player.get_name(), player.view_funds()));
+            System.out.println(String.format("Connected to the game server with name %s and funds %d!",
+                    player.get_name(), player.view_funds()));
             sendCommand(Command.Type.PLAYER_INFO, player);
             handleGameSelection(scanner);
             playGame(scanner);
@@ -158,45 +159,47 @@ public class ClientMain {
     private static void playGame(Scanner scanner) {
         while (playing) {
             Command serverResponse = (Command) serverConnection.read();
-            if (serverResponse.getType() == Command.Type.GAME_OVER) {
-                System.out.println("Game Over! Exiting!");
-                playing = false;
-            }
-            if (serverResponse.getType() == Command.Type.MESSAGE) {
-                System.out.println(((Message) serverResponse.getPayload()).getMsg());
-                continue;
-            }
-            if (serverResponse.getType() == Command.Type.CLIENT_UPDATE_PLAYER) {
-                player = (Player) serverResponse.getPayload();
-                System.out.println("Updating player from server");
-                continue;
-            }
-            if (serverResponse.getType() == Command.Type.TURN_TOKEN) {
-                String allChoices = "It's your turn! Please enter a command! Available Commands Are: ";
-                for (TurnChoice.Choice c : TurnChoice.Choice.values()) {
-                    allChoices += c.name() + ", ";
+            if (serverResponse != null) {
+                if (serverResponse.getType() == Command.Type.GAME_OVER) {
+                    System.out.println("Game Over! Exiting!");
+                    playing = false;
                 }
-                if (allChoices.endsWith(", ")) {
-                    allChoices = allChoices.substring(0, allChoices.length() - 2);
+                if (serverResponse.getType() == Command.Type.MESSAGE) {
+                    System.out.println(((Message) serverResponse.getPayload()).getMsg());
+                    continue;
                 }
-                System.out.println(allChoices);
-                String input;
-                while (true) {
-                    try {
-                        input = scanner.nextLine().toUpperCase();
-                        TurnChoice.Choice choice = TurnChoice.Choice.valueOf(input);
-                        System.out.println("You chose: " + choice);
-                        TurnChoice tc = new TurnChoice(choice);
-                        if (choice == TurnChoice.Choice.BET) {
-                            System.out.println("Enter bet amount: ");
-                            int betAmount = Integer.parseInt(scanner.nextLine());
-                            System.out.println("You bet: $" + betAmount);
-                            tc.betAmount(betAmount);
+                if (serverResponse.getType() == Command.Type.CLIENT_UPDATE_PLAYER) {
+                    player = (Player) serverResponse.getPayload();
+                    System.out.println("Updating player from server");
+                    continue;
+                }
+                if (serverResponse.getType() == Command.Type.TURN_TOKEN) {
+                    String allChoices = "It's your turn! Please enter a command! Available Commands Are: ";
+                    for (TurnChoice.Choice c : TurnChoice.Choice.values()) {
+                        allChoices += c.name() + ", ";
+                    }
+                    if (allChoices.endsWith(", ")) {
+                        allChoices = allChoices.substring(0, allChoices.length() - 2);
+                    }
+                    System.out.println(allChoices);
+                    String input;
+                    while (true) {
+                        try {
+                            input = scanner.nextLine().toUpperCase();
+                            TurnChoice.Choice choice = TurnChoice.Choice.valueOf(input);
+                            System.out.println("You chose: " + choice);
+                            TurnChoice tc = new TurnChoice(choice);
+                            if (choice == TurnChoice.Choice.BET) {
+                                System.out.println("Enter bet amount: ");
+                                int betAmount = Integer.parseInt(scanner.nextLine());
+                                System.out.println("You bet: $" + betAmount);
+                                tc.betAmount(betAmount);
+                            }
+                            sendCommand(Command.Type.TURN_CHOICE, tc);
+                            break;
+                        } catch (IllegalArgumentException e) {
+                            System.out.println("Invalid choice. Please enter CHECK, CALL, BET, FOLD, FUNDS, CARD.");
                         }
-                        sendCommand(Command.Type.TURN_CHOICE, tc);
-                        break;
-                    } catch (IllegalArgumentException e) {
-                        System.out.println("Invalid choice. Please enter CHECK, CALL, BET, FOLD, FUNDS, CARD.");
                     }
                 }
             }
