@@ -37,7 +37,8 @@ public class ClientMain {
             sendCommand(Command.Type.PLAYER_INFO, player);
             handleGameSelection(scanner);
             playGame(scanner);
-            while(playing) {}
+            while (playing) {
+            }
         } else {
             System.out.println("Failed to connect to the server. Please try again later.");
         }
@@ -158,57 +159,55 @@ public class ClientMain {
      * [Turn Token -> Its our turn to play, decide on a move for the turn]
      */
     private static void playGame(Scanner scanner) {
-        new Thread(() -> {
-            while (playing) {
-                Command serverResponse = (Command) serverConnection.read();
-                if (serverResponse != null) {
-                    if (serverResponse.getType() == Command.Type.GAME_OVER) {
-                        System.out.println("Game Over! Exiting!");
-                        playing = false;
-                    }
-                    if (serverResponse.getType() == Command.Type.MESSAGE) {
-                        System.out.println(((Message) serverResponse.getPayload()).getMsg());
-                        continue;
-                    }
-                    if (serverResponse.getType() == Command.Type.CLIENT_UPDATE_PLAYER) {
-                        player = (Player) serverResponse.getPayload();
-                        System.out.println("Updating player from server");
-                        continue;
-                    }
-                    if (serverResponse.getType() == Command.Type.TURN_TOKEN) {
-                        String allChoices = "It's your turn! Please enter a command! Available Commands Are: ";
-                        for (TurnChoice.Choice c : TurnChoice.Choice.values()) {
-                            allChoices += c.name() + ", ";
-                        }
-                        if (allChoices.endsWith(", ")) {
-                            allChoices = allChoices.substring(0, allChoices.length() - 2);
-                        }
-                        System.out.println(allChoices);
-                        String input;
-                        while (true) {
-                            try {
-                                input = scanner.nextLine().toUpperCase();
-                                TurnChoice.Choice choice = TurnChoice.Choice.valueOf(input);
-                                System.out.println("You chose: " + choice);
-                                TurnChoice tc = new TurnChoice(choice);
-                                if (choice == TurnChoice.Choice.BET) {
-                                    System.out.println("Enter bet amount: ");
-                                    int betAmount = Integer.parseInt(scanner.nextLine());
-                                    System.out.println("You bet: $" + betAmount);
-                                    tc.betAmount(betAmount);
-                                }
-                                sendCommand(Command.Type.TURN_CHOICE, tc);
-                                break;
-                            } catch (IllegalArgumentException e) {
-                                System.out.println("Invalid choice. Please enter CHECK, CALL, BET, FOLD, FUNDS, CARD.");
-                            }
-                        }
-                    }
-                } else {
-                    break;
+        while (playing) {
+            Command serverResponse = (Command) serverConnection.read();
+            if (serverResponse != null) {
+                if (serverResponse.getType() == Command.Type.GAME_OVER) {
+                    System.out.println("Game Over! Exiting!");
+                    playing = false;
                 }
+                if (serverResponse.getType() == Command.Type.MESSAGE) {
+                    System.out.println(((Message) serverResponse.getPayload()).getMsg());
+                    continue;
+                }
+                if (serverResponse.getType() == Command.Type.CLIENT_UPDATE_PLAYER) {
+                    player = (Player) serverResponse.getPayload();
+                    System.out.println("Updating player from server");
+                    continue;
+                }
+                if (serverResponse.getType() == Command.Type.TURN_TOKEN) {
+                    String allChoices = "It's your turn! Please enter a command! Available Commands Are: ";
+                    for (TurnChoice.Choice c : TurnChoice.Choice.values()) {
+                        allChoices += c.name() + ", ";
+                    }
+                    if (allChoices.endsWith(", ")) {
+                        allChoices = allChoices.substring(0, allChoices.length() - 2);
+                    }
+                    System.out.println(allChoices);
+                    String input;
+                    while (true) {
+                        try {
+                            input = scanner.nextLine().toUpperCase();
+                            TurnChoice.Choice choice = TurnChoice.Choice.valueOf(input);
+                            System.out.println("You chose: " + choice);
+                            TurnChoice tc = new TurnChoice(choice);
+                            if (choice == TurnChoice.Choice.BET) {
+                                System.out.println("Enter bet amount: ");
+                                int betAmount = Integer.parseInt(scanner.nextLine());
+                                System.out.println("You bet: $" + betAmount);
+                                tc.betAmount(betAmount);
+                            }
+                            sendCommand(Command.Type.TURN_CHOICE, tc);
+                            break;
+                        } catch (IllegalArgumentException e) {
+                            System.out.println("Invalid choice. Please enter CHECK, CALL, BET, FOLD, FUNDS, CARD.");
+                        }
+                    }
+                }
+            } else {
+                break;
             }
-        }).start();
+        }
     }
 
     /**
