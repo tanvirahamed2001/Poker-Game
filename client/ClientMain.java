@@ -37,6 +37,7 @@ public class ClientMain {
             sendCommand(Command.Type.PLAYER_INFO, player);
             handleGameSelection(scanner);
             playGame(scanner);
+            while(playing) {}
         } else {
             System.out.println("Failed to connect to the server. Please try again later.");
         }
