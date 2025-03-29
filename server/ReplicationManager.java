@@ -10,15 +10,11 @@ public class ReplicationManager {
     private boolean isPrimary;
     
     // For primary mode: store backup sockets and their output streams.
-    private List<Socket> backupSockets = new ArrayList<>();
-    private List<ObjectOutputStream> backupOutputs = new ArrayList<>();
-    private List<ObjectInputStream> backupInputs = new ArrayList<>();
+    private List<BackupConnection> backupConns = new ArrayList<>();
     
     // For backup mode: a ServerSocket to listen for replication updates and an ObjectInputStream for the primary.
     private ServerSocket replicationListener;
-    private Socket primarySocket;
-    private ObjectInputStream primaryIn;
-    private ObjectOutputStream primaryOut;
+    private PrimaryConnection primaryConn;
     
     // Heartbeat timer for detecting failure.
     private Timer heartbeatTimer;
@@ -68,8 +64,7 @@ public class ReplicationManager {
             // Connect to each backup.
             for (Endpoint ep : backupEndpoints) {
                 try {
-                    Socket s = new Socket(ep.host, ep.port);
-                    backupSockets.add(s);
+                    backupConns.add(new BackupConnection(new Socket(ep.host, ep.port)));
                     System.out.println("Primary connected to backup at " + ep);
                 } catch (IOException e) {
                     System.err.println("Primary failed to connect to backup at " + ep);
@@ -85,10 +80,7 @@ public class ReplicationManager {
                         replicationListener = new ServerSocket(replicationPort);
                         System.out.println("Backup " + serverId + " waiting for primary replication connection on port " + replicationPort);
                     }
-                    primarySocket = replicationListener.accept();
-                    primaryOut = new ObjectOutputStream(primarySocket.getOutputStream());
-                    primaryOut.flush();
-                    primaryIn = new ObjectInputStream(primarySocket.getInputStream());
+                    primaryConn = new PrimaryConnection(replicationListener.accept());
                     new Thread(() -> listenForUpdates()).start();
                     startHeartbeat();
                     break; // Successfully connected—exit the loop.
@@ -111,27 +103,21 @@ public class ReplicationManager {
     // Called by the primary to broadcast GameState updates.
     public synchronized void sendStateUpdate(GameState state) {
         if (isPrimary) {
-            for(int i = 0; i < backupSockets.size(); i++) {
+            for(int i = 0; i < backupConns.size(); i++) {
+                BackupConnection backup = backupConns.get(i);
                 try {
-                    System.out.println("Opening backup streams...");
-                    ObjectOutputStream oos = new ObjectOutputStream(backupSockets.get(i).getOutputStream());
-                    oos.flush();
-                    ObjectInputStream ois = new ObjectInputStream(backupSockets.get(i).getInputStream());
-                    System.out.println("Backup streams open...");
-                    System.out.println("Sending game state...");
-                    backupSockets.get(i).setSoTimeout(10000);
-                    oos.writeObject(state);
-                    oos.flush();
+                    backup.setTimeout(10000);
+                    backup.write(state);
                     System.out.println("Game state sent...");
-                    Command response = (Command)ois.readObject();
+                    Command response = (Command)backup.read();
                     if(response.getType() != Command.Type.REPLICATION_ACK) {
                         throw new ReplicationExecption("No Ack From Backup...");
                     } else {
                         System.out.println("Recived replication ACK...");
                     }
-                } catch (IOException | ClassNotFoundException | ReplicationExecption e) {
+                } catch (ReplicationExecption e) {
                     System.err.println("Error sending state to a backup; removing connection...");
-                    backupSockets.remove(i);
+                    backupConns.remove(i);
                 }
             }
         }
@@ -145,43 +131,23 @@ public class ReplicationManager {
 
     // Backups listen for state updates from the primary.
     private void listenForUpdates() {
-        try {
-            while (true) {
-                Object obj = primaryIn.readObject();
-                if (obj instanceof GameState) {
-                    GameState receivedState = (GameState) obj;
-                    updateLocalGameState(receivedState);
-                    lastUpdateTimestamp = System.currentTimeMillis();
-                    System.out.println("Received and applied GameState update for game " +
-                                       receivedState.getGameId());
-                    System.out.println("Now sending ACK to primary server");
-                    primaryOut.writeObject(new Command(Command.Type.REPLICATION_ACK, "ack"));
-                    primaryOut.flush();
-                } else {
-                    System.out.println("Received non-GameState object: " + obj.getClass().getName());
-                }
+        while (true) {
+            Object obj = primaryConn.read();
+            if (obj instanceof GameState) {
+                GameState receivedState = (GameState) obj;
+                updateLocalGameState(receivedState);
+                lastUpdateTimestamp = System.currentTimeMillis();
+                System.out.println("Received and applied GameState update for game " + receivedState.getGameId());
+                System.out.println("Now sending ACK to primary server");
+                primaryConn.write(new Command(Command.Type.REPLICATION_ACK, "ack"));
+            } else if (obj == null) {
+                System.err.println("Replication connection lost...");
+                System.out.println("Closing lost primary connection...");
+                primaryConn.closeConnections();
+                reinitializeReplicationListener();
+            } else {
+                System.out.println("Received non-GameState object: " + obj.getClass().getName());
             }
-        } catch (IOException | ClassNotFoundException e) {
-            System.err.println("Replication connection lost: ");
-            e.printStackTrace();
-            // Cleanup the current connection
-            try {
-                System.out.println("Closing dead primary streams...");
-                if (primaryIn != null) {
-                    primaryIn.close();
-                    System.out.println("Closed primary input..");
-                }
-                if (primaryOut != null) {
-                     primaryOut.close();
-                    System.out.println("Closed primary output...");
-                }
-                if (replicationListener != null) {
-                    replicationListener.close();
-                    System.out.println("Closed primary replication listener...");
-                }
-            } catch (IOException ex) { }
-            // Reinitialize listener to wait for a new primary connection
-            reinitializeReplicationListener();
         }
     }
 
@@ -194,10 +160,7 @@ public class ReplicationManager {
                     replicationListener = new ServerSocket(replicationPort);
                     System.out.println("Backup " + serverId + " re-waiting for primary replication connection on port " + replicationPort);
                 }
-                primarySocket = replicationListener.accept();
-                primaryOut = new ObjectOutputStream(primarySocket.getOutputStream());
-                primaryOut.flush();
-                primaryIn = new ObjectInputStream(primarySocket.getInputStream());
+                primaryConn = new PrimaryConnection(replicationListener.accept());
                 new Thread(() -> listenForUpdates()).start();
                 lastUpdateTimestamp = System.currentTimeMillis();
                 System.out.println("Reconnected to new primary replication connection.");
@@ -353,8 +316,7 @@ public class ReplicationManager {
     private void connectBackupsToNewPrimary() {
         for (Endpoint ep : backupEndpoints) {
             try {
-                Socket backupSocket = new Socket(ep.host, ep.port);
-                backupSockets.add(backupSocket);
+                backupConns.add(new BackupConnection(new Socket(ep.host, ep.port)));
                 System.out.println("Reconnected socket from backups...");
                 System.out.println("New primary connected to backup at " + ep);
             } catch (IOException e) {
