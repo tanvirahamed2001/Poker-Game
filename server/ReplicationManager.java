@@ -86,8 +86,9 @@ public class ReplicationManager {
                         System.out.println("Backup " + serverId + " waiting for primary replication connection on port " + replicationPort);
                     }
                     primarySocket = replicationListener.accept();
-                    primaryIn = new ObjectInputStream(primarySocket.getInputStream());
                     primaryOut = new ObjectOutputStream(primarySocket.getOutputStream());
+                    primaryOut.flush();
+                    primaryIn = new ObjectInputStream(primarySocket.getInputStream());
                     new Thread(() -> listenForUpdates()).start();
                     startHeartbeat();
                     break; // Successfully connected—exit the loop.
@@ -114,11 +115,8 @@ public class ReplicationManager {
                 try {
                     System.out.println("Opening backup streams...");
                     ObjectOutputStream oos = new ObjectOutputStream(backupSockets.get(i).getOutputStream());
-
                     oos.flush();
-
                     ObjectInputStream ois = new ObjectInputStream(backupSockets.get(i).getInputStream());
-
                     System.out.println("Backup streams open...");
                     System.out.println("Sending game state...");
                     backupSockets.get(i).setSoTimeout(10000);
@@ -197,8 +195,9 @@ public class ReplicationManager {
                     System.out.println("Backup " + serverId + " re-waiting for primary replication connection on port " + replicationPort);
                 }
                 primarySocket = replicationListener.accept();
-                primaryIn = new ObjectInputStream(primarySocket.getInputStream());
                 primaryOut = new ObjectOutputStream(primarySocket.getOutputStream());
+                primaryOut.flush();
+                primaryIn = new ObjectInputStream(primarySocket.getInputStream());
                 new Thread(() -> listenForUpdates()).start();
                 lastUpdateTimestamp = System.currentTimeMillis();
                 System.out.println("Reconnected to new primary replication connection.");
