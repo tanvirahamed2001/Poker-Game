@@ -14,10 +14,7 @@ import shared.communication_objects.*;
 public class ClientMain {
     private static final String SERVER_ADDRESS = "localhost"; // Place blocker where we will put IP address UofC systems to keep it consistent
     private static final int SERVER_PORT = 6834; // Match server port
-    private static final int BACKUP_PORT = 6834; // BACKUP PORT
-    private static Socket socket;
-    private static ObjectOutputStream out;
-    private static ObjectInputStream in;
+    private static PrimaryConnection serverConnection;
     private static Player player;
     private static int id;
     private static InTable table_info = new InTable(false, 0);
@@ -41,7 +38,7 @@ public class ClientMain {
         } else {
             System.out.println("Failed to connect to the server. Please try again later.");
         }
-        closeConnection();
+        serverConnection.closeConnections();
     }
 
     /**
@@ -49,16 +46,11 @@ public class ClientMain {
      * @return int ID
      */
     private static int getIDFromServer() {
-        try{
-            Command cmd = (Command) in.readObject();
-            if(cmd.getPayload() instanceof ClientServerId) {
-                ClientServerId id = (ClientServerId) cmd.getPayload();
-                return id.getID();
-            } else {
-                return 0;
-            }
-        } catch(IOException | ClassNotFoundException e) {
-            System.err.println("Error: " + e.getClass().getSimpleName() + " in ClientMain Line 63.");
+        Command cmd = (Command) serverConnection.read();
+        if(cmd.getPayload() instanceof ClientServerId) {
+            ClientServerId id = (ClientServerId) cmd.getPayload();
+            return id.getID();
+        } else {
             return 0;
         }
     }
@@ -102,24 +94,15 @@ public class ClientMain {
      */
     private static boolean connectToServer() {
         try {
-            socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
+            Socket socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
             System.out.println("Connected to primary server at " + SERVER_ADDRESS + ":" + SERVER_PORT);
+            serverConnection = new PrimaryConnection(socket);
+            monitorConnection();
+            return true;
         } catch (IOException e) {
             System.err.println("Failed to connect to primary server: " + e.getClass().getSimpleName() + " in ClientMain Line 119.");
-        }
-        try {
-            System.out.println("Opening new output stream Line 110.");
-            out = new ObjectOutputStream(socket.getOutputStream());
-            out.flush();
-            System.out.println("Opening new input stream Line 110.");
-            in = new ObjectInputStream(socket.getInputStream());
-            System.out.println("Opening finished opening streams! Line 115.");
-        } catch (IOException e) {
-            System.err.println("Failed to setup object input and output streams: " + e.getClass().getSimpleName() + " in ClientMain Line 134.");
             return false;
         }
-        monitorConnection();
-        return true;
     }
 
     /**
@@ -128,8 +111,7 @@ public class ClientMain {
     private static void sendCommand(Command.Type type, Object obj) {
         Command cmd = new Command(type, obj);
         try {
-            out.writeObject(cmd);
-            out.flush();
+            serverConnection.write(cmd);
         } catch(Exception e) {
             System.err.println("Error sending command object: " + e.getClass().getSimpleName() + " in ClientMain Line 149.");
         }
@@ -141,50 +123,30 @@ public class ClientMain {
      */
     private static void handleGameSelection(Scanner scanner) {
         sendCommand(Command.Type.INITIAL_CONN, null);
-        System.out.println("Waiting for available games...");
-        try { 
-            // build the server response command
-            Command serverResponse = (Command)in.readObject();
-            // check if the response is of type GAMES_LIST
-            if(serverResponse.getType() == Command.Type.GAMES_LIST) {
-                GameList games = (GameList) serverResponse.getPayload();
-                System.out.println(games.getGames());
-            }
-            // create the game choice from the player
-            System.out.print("Enter game number or type 'new': ");
-            GameChoice gc;
-            if(scanner.hasNextInt()) {
-                gc = new GameChoice(GameChoice.Choice.JOIN);
-                gc.setId(scanner.nextInt());
-            } else {
-                gc = new GameChoice(GameChoice.Choice.NEW);
-            }
-            scanner.nextLine();
-            sendCommand(Command.Type.GAME_CHOICE, gc);
-            serverResponse = (Command)in.readObject();
-            System.out.println(((Message)serverResponse.getPayload()).getMsg());
-            System.out.println("Waiting for server table information!");
-            serverResponse = (Command)in.readObject();
-            table_info = new InTable(true, ((TableInfo)serverResponse.getPayload()).getTableID());
-        } catch (IOException e) {
-            System.err.println("Error receiving game selection: " + e.getClass().getSimpleName()  + " in ClientMain Line 182.");
-        } catch (ClassNotFoundException e2) {
-            System.err.println("Error with game list object: " + e2.getClass().getSimpleName()  + " in ClientMain Line 184.");
+        System.out.println("Waiting for available games..."); 
+        // build the server response command
+        Command serverResponse = (Command) serverConnection.read();
+        // check if the response is of type GAMES_LIST
+        if(serverResponse.getType() == Command.Type.GAMES_LIST) {
+            GameList games = (GameList) serverResponse.getPayload();
+            System.out.println(games.getGames());
         }
-    }
-
-    /**
-     * Bundle close connection code
-     */
-    private static void closeConnection() {
-        try {
-            if (socket != null) socket.close();
-            if (out != null) out.close();
-            if (in != null) in.close();
-            System.out.println("Disconnected from server.");
-        } catch (IOException e) {
-            System.err.println("Error closing connection: " + e.getClass().getSimpleName()  + " in ClientMain Line 195.");
+        // create the game choice from the player
+        System.out.print("Enter game number or type 'new': ");
+        GameChoice gc;
+        if(scanner.hasNextInt()) {
+            gc = new GameChoice(GameChoice.Choice.JOIN);
+            gc.setId(scanner.nextInt());
+        } else {
+            gc = new GameChoice(GameChoice.Choice.NEW);
         }
+        scanner.nextLine();
+        sendCommand(Command.Type.GAME_CHOICE, gc);
+        serverResponse = (Command) serverConnection.read();
+        System.out.println(((Message)serverResponse.getPayload()).getMsg());
+        System.out.println("Waiting for server table information!");
+        serverResponse = (Command) serverConnection.read();
+        table_info = new InTable(true, ((TableInfo)serverResponse.getPayload()).getTableID());
     }
 
     /**
@@ -196,9 +158,9 @@ public class ClientMain {
      */
     private static void playGame(Scanner scanner) {
         try {
-            socket.setSoTimeout(600000);
+            serverConnection.setTimeout(10000);
             while(true) {
-                Command serverResponse = (Command)in.readObject();
+                Command serverResponse = (Command) serverConnection.read();
                 if(serverResponse.getType() == Command.Type.GAME_OVER) {
                     System.out.println("Game Over! Exiting!");
                     break;
@@ -261,11 +223,11 @@ public class ClientMain {
                     // Sleep a bit before checking the connection status.
                     Thread.sleep(5000);
                     // A simple check: if the socket is closed or not connected, trigger a reconnect.
-                    if (socket == null || socket.isClosed() || !socket.isConnected()) {
+                    if (serverConnection.connected()) {
                         throw new IOException("Connection lost");
                     }
                 } catch (Exception e) {
-                    System.out.println("Connection lost. Attempting to reconnect...");
+                    System.out.println("Attempting to reconnect...");
                     reconnectToServer();
                     break;
                 }
@@ -279,7 +241,8 @@ public class ClientMain {
      */
     private static void reconnectToServer() {
         // Close any existing resources.
-        closeConnection();
+        serverConnection.closeConnections();
+        serverConnection = null;
         boolean reconnected = connectToServer();
         if (reconnected) {
             System.out.println("Reconnected successfully!");
