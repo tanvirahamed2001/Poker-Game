@@ -88,15 +88,14 @@ public class ReplicationManager {
                     if (replicationListener == null || replicationListener.isClosed()) {
                         replicationListener = new ServerSocket(replicationPort);
                         System.out.println("Backup " + serverId + " waiting for primary replication connection on port " + replicationPort);
-                    } else {
-                        Socket primarySocket = replicationListener.accept();
-                        lastUpdateTimestamp = System.currentTimeMillis();
-                        primaryIn = new ObjectInputStream(primarySocket.getInputStream());
-                        primaryOut = new ObjectOutputStream(primarySocket.getOutputStream());
-                        new Thread(() -> listenForUpdates()).start();
-                        startHeartbeat();
-                        break; // Successfully connected—exit the loop.
                     }
+                    Socket primarySocket = replicationListener.accept();
+                    lastUpdateTimestamp = System.currentTimeMillis();
+                    primaryIn = new ObjectInputStream(primarySocket.getInputStream());
+                    primaryOut = new ObjectOutputStream(primarySocket.getOutputStream());
+                    new Thread(() -> listenForUpdates()).start();
+                    startHeartbeat();
+                    break; // Successfully connected—exit the loop.
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
