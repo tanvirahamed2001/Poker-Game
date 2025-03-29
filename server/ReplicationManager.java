@@ -90,7 +90,6 @@ public class ReplicationManager {
                         System.out.println("Backup " + serverId + " waiting for primary replication connection on port " + replicationPort);
                     }
                     Socket primarySocket = replicationListener.accept();
-                    lastUpdateTimestamp = System.currentTimeMillis();
                     primaryIn = new ObjectInputStream(primarySocket.getInputStream());
                     primaryOut = new ObjectOutputStream(primarySocket.getOutputStream());
                     new Thread(() -> listenForUpdates()).start();
@@ -227,7 +226,6 @@ public class ReplicationManager {
                 long now = System.currentTimeMillis();
                 if (now - lastUpdateTimestamp > HEARTBEAT_THRESHOLD) {
                     System.out.println("No update received in threshold time. Initiating election.");
-                    terminateDeadPrimary();
                     startElection();
                     lastUpdateTimestamp = now;
                 }
@@ -264,6 +262,7 @@ public class ReplicationManager {
         }
         if (!higherServerAlive) {
             System.out.println("No higher server responded. Server " + serverId + " becomes the new primary.");
+            terminateDeadPrimary();
             promoteToPrimary();
         } else {
             System.out.println("A higher server is alive. Waiting for new leader announcement.");
