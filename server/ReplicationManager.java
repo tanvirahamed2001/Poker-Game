@@ -164,7 +164,8 @@ public class ReplicationManager {
                 }
             }
         } catch (IOException | ClassNotFoundException e) {
-            System.err.println("Replication connection lost: " + e.getMessage());
+            System.err.println("Replication connection lost: ");
+            e.printStackTrace();
             // Cleanup the current connection
             try {
                 System.out.println("Closing dead primary streams...");
