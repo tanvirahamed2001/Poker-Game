@@ -70,11 +70,6 @@ public class ReplicationManager {
                 try {
                     Socket s = new Socket(ep.host, ep.port);
                     backupSockets.add(s);
-                    ObjectOutputStream oos = new ObjectOutputStream(s.getOutputStream());
-                    oos.flush();
-                    backupOutputs.add(oos);
-                    ObjectInputStream ois = new ObjectInputStream(s.getInputStream());
-                    backupInputs.add(ois);
                     System.out.println("Primary connected to backup at " + ep);
                 } catch (IOException e) {
                     System.err.println("Primary failed to connect to backup at " + ep);
