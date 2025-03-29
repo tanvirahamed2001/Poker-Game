@@ -223,7 +223,7 @@ public class ClientMain {
                     // Sleep a bit before checking the connection status.
                     Thread.sleep(5000);
                     // A simple check: if the socket is closed or not connected, trigger a reconnect.
-                    if (serverConnection.connected()) {
+                    if (!serverConnection.connected()) {
                         throw new IOException("Connection lost");
                     }
                 } catch (Exception e) {
