@@ -169,9 +169,19 @@ public class ReplicationManager {
             System.err.println("Replication connection lost: " + e.getMessage());
             // Cleanup the current connection
             try {
-                if (primaryIn != null) primaryIn.close();
-                if (replicationListener != null) replicationListener.close();
-                if  (primaryOut != null) primaryOut.close();
+                System.out.println("Closing dead primary streams...");
+                if (primaryIn != null) {
+                    primaryIn.close();
+                    System.out.println("Closed primary in...");
+                }
+                if (primaryOut != null) {
+                     primaryOut.close();
+                    System.out.println("Closed primary out...");
+                }
+                if (replicationListener != null) {
+                    replicationListener.close();
+                    System.out.println("Closed primary replication listener...");
+                }
             } catch (IOException ex) { }
             // Reinitialize listener to wait for a new primary connection
             reinitializeReplicationListener();
