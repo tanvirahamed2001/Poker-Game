@@ -29,7 +29,7 @@ public class ClientServerConnection {
     }
 
     public boolean connected() {
-        if(primarySocket.isClosed() | primarySocket.isConnected()) {
+        if(!primarySocket.isClosed() | primarySocket.isConnected()) {
             return true;
         }
         return false;
