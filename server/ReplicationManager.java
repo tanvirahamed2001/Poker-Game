@@ -114,8 +114,11 @@ public class ReplicationManager {
                 try {
                     System.out.println("Opening backup streams...");
                     ObjectOutputStream oos = new ObjectOutputStream(backupSockets.get(i).getOutputStream());
+
                     oos.flush();
+
                     ObjectInputStream ois = new ObjectInputStream(backupSockets.get(i).getInputStream());
+
                     System.out.println("Backup streams open...");
                     System.out.println("Sending game state...");
                     backupSockets.get(i).setSoTimeout(10000);
@@ -131,8 +134,6 @@ public class ReplicationManager {
                 } catch (IOException | ClassNotFoundException | ReplicationExecption e) {
                     System.err.println("Error sending state to a backup; removing connection...");
                     backupSockets.remove(i);
-                    backupOutputs.remove(i);
-                    backupInputs.remove(i);
                 }
             }
         }
@@ -274,6 +275,7 @@ public class ReplicationManager {
         try (Socket socket = new Socket(targetHost, targetPort)) {
             socket.setSoTimeout(3000);
             ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+            oos.flush();
             ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
             Command electionCmd = new Command(Command.Type.ELECTION, new Election(serverId, targetId));
             oos.writeObject(electionCmd);
@@ -298,9 +300,10 @@ public class ReplicationManager {
                 while (true) {
                     Socket socket = electionSocket.accept();
                     new Thread(() -> {
-                        try (
+                        try {
                             ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-                            ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());) {
+                            oos.flush();
+                            ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
                             Command electionCmd = (Command) ois.readObject();
                             if (electionCmd.getType() == Command.Type.ELECTION) {
                                 Election election = (Election) electionCmd.getPayload();
