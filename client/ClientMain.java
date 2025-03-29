@@ -199,8 +199,9 @@ public class ClientMain {
 
     /**
      * If we get a non null server response, handle the command type
+     * 
      * @param response non null server response
-     * @param scanner for playing input
+     * @param scanner  for playing input
      */
     private static void handleServerGameResponse(Command response, Scanner scanner) {
         switch (response.getType()) {
@@ -223,6 +224,7 @@ public class ClientMain {
 
     /**
      * Once turn token is recieved, handle player input for that turn
+     * 
      * @param scanner for player input
      */
     private static void handleTurn(Scanner scanner) {
@@ -278,7 +280,10 @@ public class ClientMain {
         // Loop till we manage to get a connection
         while (!connectToServer()) {
             printTerminalMessage("Reconnect attempt failed. Retrying...");
-            try {Thread.sleep(3000);} catch (InterruptedException ie) {}
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException ie) {
+            }
         }
         printTerminalMessage("Reconnected successfully!");
         sendCommand(Command.Type.PLAYER_INFO, player);
