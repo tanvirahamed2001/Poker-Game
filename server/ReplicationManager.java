@@ -357,10 +357,6 @@ public class ReplicationManager {
                 Socket backupSocket = new Socket(ep.host, ep.port);
                 backupSockets.add(backupSocket);
                 System.out.println("Reconnected socket from backups...");
-                ObjectOutputStream oos = new ObjectOutputStream(backupSocket.getOutputStream());
-                oos.flush();
-                backupOutputs.add(oos);
-                System.out.println("Reconnected output stream from backups...");
                 System.out.println("New primary connected to backup at " + ep);
             } catch (IOException e) {
                 System.err.println("New primary failed to connect to backup at " + ep);
