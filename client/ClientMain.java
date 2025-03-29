@@ -240,24 +240,22 @@ public class ClientMain {
     private static void reconnectToServer() {
         // Close any existing resources.
         serverConnection.closeConnections();
-        boolean reconnected = connectToServer();
-        if (reconnected) {
-            System.out.println("Reconnected successfully!");
-            sendCommand(Command.Type.PLAYER_INFO, player);
-            Scanner scanner = new Scanner(System.in);
-            if(table_info.getIn()) {
-                System.out.println("In table before disconnect...attempting to join table " + table_info.getTableID());
-                sendCommand(Command.Type.RECONNECT, table_info.getTableID());
-                playGame(scanner);
-            } else {
-                System.out.println("Client was not in a table, getting table list");
-                handleGameSelection(scanner);
-                playGame(scanner);
-            }
-        } else {
+        Scanner scanner = new Scanner(System.in);
+        //Loop till we manage to get a connection
+        while(!connectToServer()) {
             System.out.println("Reconnect attempt failed. Retrying...");
             try { Thread.sleep(3000); } catch (InterruptedException ie) {}
-            reconnectToServer();
+        }
+        System.out.println("Reconnected successfully!");
+        sendCommand(Command.Type.PLAYER_INFO, player);
+        if(table_info.getIn()) {
+            System.out.println("In table before disconnect...attempting to join table " + table_info.getTableID());
+            sendCommand(Command.Type.RECONNECT, table_info.getTableID());
+            playGame(scanner);
+        } else {
+            System.out.println("Client was not in a table, getting table list");
+            handleGameSelection(scanner);
+            playGame(scanner);
         }
     }
 }
