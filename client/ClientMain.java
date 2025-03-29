@@ -14,7 +14,7 @@ import shared.communication_objects.*;
 public class ClientMain {
     private static final String SERVER_ADDRESS = "localhost"; // Place blocker where we will put IP address UofC systems to keep it consistent
     private static final int SERVER_PORT = 6834; // Match server port
-    private static PrimaryConnection serverConnection;
+    private static ClientServerConnection serverConnection;
     private static Player player;
     private static int id;
     private static InTable table_info = new InTable(false, 0);
@@ -96,7 +96,7 @@ public class ClientMain {
         try {
             Socket socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
             System.out.println("Connected to primary server at " + SERVER_ADDRESS + ":" + SERVER_PORT);
-            serverConnection = new PrimaryConnection(socket);
+            serverConnection = new ClientServerConnection(socket);
             monitorConnection();
             return true;
         } catch (IOException e) {

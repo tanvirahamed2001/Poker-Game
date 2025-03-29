@@ -3,12 +3,12 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 
-public class PrimaryConnection {
+public class ClientServerConnection {
     private Socket primarySocket;
     private ObjectInputStream primaryIn;
     private ObjectOutputStream primaryOut;
 
-    public PrimaryConnection(Socket primarySocket) {
+    public ClientServerConnection(Socket primarySocket) {
         try {
             this.primarySocket = primarySocket;
             this.primaryOut = new ObjectOutputStream(this.primarySocket.getOutputStream());
