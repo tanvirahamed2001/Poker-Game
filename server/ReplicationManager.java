@@ -114,6 +114,7 @@ public class ReplicationManager {
                 try {
                     System.out.println("Opening backup streams...");
                     ObjectOutputStream oos = new ObjectOutputStream(backupSockets.get(i).getOutputStream());
+                    oos.flush();
                     ObjectInputStream ois = new ObjectInputStream(backupSockets.get(i).getInputStream());
                     System.out.println("Backup streams open...");
                     System.out.println("Sending game state...");
@@ -168,11 +169,11 @@ public class ReplicationManager {
                 System.out.println("Closing dead primary streams...");
                 if (primaryIn != null) {
                     primaryIn.close();
-                    System.out.println("Closed primary in...");
+                    System.out.println("Closed primary input..");
                 }
                 if (primaryOut != null) {
                      primaryOut.close();
-                    System.out.println("Closed primary out...");
+                    System.out.println("Closed primary output...");
                 }
                 if (replicationListener != null) {
                     replicationListener.close();
