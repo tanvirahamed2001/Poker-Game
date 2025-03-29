@@ -20,8 +20,10 @@ public class ClientMain {
     private static int id;
     private static InTable table_info = new InTable(false, 0);
     private static boolean playing = false;
+    private static boolean running = false;
 
     public static void main(String[] args) {
+        running = true;
         // Init a scanner
         Scanner scanner = new Scanner(System.in);
         // Display welcome message for the client
@@ -47,6 +49,7 @@ public class ClientMain {
             // wait for threads to be finished to close out the main thread
             try {
                 gameThread.join();
+                running = false;
                 monitorThread.join();
             } catch (InterruptedException e) {
                 printTerminalMessage(e.getLocalizedMessage());
@@ -251,22 +254,20 @@ public class ClientMain {
      * Attemps to reconnect on detected failure
      */
     private static void monitorConnection() {
-        new Thread(() -> {
-            while (playing) {
-                try {
-                    // Sleep a bit before checking the connection status.
-                    Thread.sleep(5000);
-                    // A simple check: if the socket is closed or not connected, trigger a
-                    // reconnect.
-                    if (!serverConnection.connected()) {
-                        throw new IOException("Connection lost");
-                    }
-                } catch (Exception e) {
-                    printTerminalMessage("Attempting to reconnect...");
-                    reconnectToServer();
+        while (running) {
+            try {
+                // Sleep a bit before checking the connection status.
+                Thread.sleep(5000);
+                // A simple check: if the socket is closed or not connected, trigger a
+                // reconnect.
+                if (!serverConnection.connected()) {
+                    throw new IOException("Connection lost");
                 }
+            } catch (Exception e) {
+                printTerminalMessage("Attempting to reconnect...");
+                reconnectToServer();
             }
-        }).start();
+        }
     }
 
     /**
