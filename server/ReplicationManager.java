@@ -146,7 +146,9 @@ public class ReplicationManager {
                 System.err.println("Replication connection lost...");
                 System.out.println("Closing lost primary connection...");
                 primaryConn.closeConnections();
+                primaryConn = null;
                 reinitializeReplicationListener();
+                break;
             } else {
                 System.out.println("Received non-GameState object: " + obj.getClass().getName());
             }
