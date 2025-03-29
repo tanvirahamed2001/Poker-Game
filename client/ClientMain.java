@@ -95,6 +95,7 @@ public class ClientMain {
         try {
             Socket socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
             System.out.println("Connected to primary server at " + SERVER_ADDRESS + ":" + SERVER_PORT);
+            serverConnection = null;
             serverConnection = new ClientServerConnection(socket);
             monitorConnection();
             return true;
@@ -239,12 +240,14 @@ public class ClientMain {
      */
     private static void reconnectToServer() {
         // Close any existing resources.
+        boolean reconnected = false;
         serverConnection.closeConnections();
         Scanner scanner = new Scanner(System.in);
         //Loop till we manage to get a connection
-        while(!connectToServer()) {
+        while(!reconnected) {
             System.out.println("Reconnect attempt failed. Retrying...");
             try { Thread.sleep(3000); } catch (InterruptedException ie) {}
+            reconnected = connectToServer();
         }
         System.out.println("Reconnected successfully!");
         sendCommand(Command.Type.PLAYER_INFO, player);
