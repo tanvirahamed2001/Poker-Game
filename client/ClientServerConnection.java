@@ -29,10 +29,10 @@ public class ClientServerConnection {
     }
 
     public boolean connected() {
-        if(!primarySocket.isClosed() | primarySocket.isConnected()) {
-            return true;
+        if(primarySocket.isClosed() || !primarySocket.isConnected() || primarySocket == null) {
+            return false;
         }
-        return false;
+        return true;
     }
 
     public void write(Object obj) {
