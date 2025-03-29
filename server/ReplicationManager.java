@@ -80,7 +80,8 @@ public class ReplicationManager {
                         replicationListener = new ServerSocket(replicationPort);
                         System.out.println("Backup " + serverId + " waiting for primary replication connection on port " + replicationPort);
                     }
-                    primaryConn = new PrimaryConnection(replicationListener.accept());
+                    Socket s = replicationListener.accept();
+                    primaryConn = new PrimaryConnection(s);
                     new Thread(() -> listenForUpdates()).start();
                     startHeartbeat();
                     break; // Successfully connected—exit the loop.
@@ -160,7 +161,8 @@ public class ReplicationManager {
                     replicationListener = new ServerSocket(replicationPort);
                     System.out.println("Backup " + serverId + " re-waiting for primary replication connection on port " + replicationPort);
                 }
-                primaryConn = new PrimaryConnection(replicationListener.accept());
+                Socket s = replicationListener.accept();
+                primaryConn = new PrimaryConnection(s);
                 new Thread(() -> listenForUpdates()).start();
                 lastUpdateTimestamp = System.currentTimeMillis();
                 System.out.println("Reconnected to new primary replication connection.");
