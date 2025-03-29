@@ -173,6 +173,7 @@ public class ReplicationManager {
                 if (replicationListener != null) replicationListener.close();
             } catch (IOException ex) { }
             // Reinitialize listener to wait for a new primary connection
+            terminateDeadPrimary();
             reinitializeReplicationListener();
         }
     }
@@ -262,7 +263,6 @@ public class ReplicationManager {
         }
         if (!higherServerAlive) {
             System.out.println("No higher server responded. Server " + serverId + " becomes the new primary.");
-            terminateDeadPrimary();
             promoteToPrimary();
         } else {
             System.out.println("A higher server is alive. Waiting for new leader announcement.");
