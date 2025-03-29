@@ -22,27 +22,58 @@ public class ClientMain {
     private static boolean playing = false;
 
     public static void main(String[] args) {
-        // Display welcome message for the client
-        System.out.println("Welcome to Poker Game!");
-
-        // Create a scanner for getting player input
+        // Init a scanner
         Scanner scanner = new Scanner(System.in);
-
+        // Display welcome message for the client
+        printWelcomeMessage();
         // Begin connection to server
         if (connectToServer()) {
+            // start monitoring the server connection with a monitor thread
+            Thread monitorThread = new Thread(() -> monitorConnection());
+            monitorThread.start();
+            // get a id tag from the server
             id = getIDFromServer();
+            // create the player object
             player = getPlayerInfo(scanner, id);
-            System.out.println(String.format("Connected to the game server with name %s and funds %d!",
+            printTerminalMessage(String.format("Connected to the game server with name %s and funds %d!",
                     player.get_name(), player.view_funds()));
+            // send the player via a player info command
             sendCommand(Command.Type.PLAYER_INFO, player);
+            // handle creating / selecting a table
             handleGameSelection(scanner);
-            playGame(scanner);
-            while (playing) {
+            // main game thread
+            Thread gameThread = new Thread(() -> playGame(scanner));
+            gameThread.start();
+            // wait for threads to be finished to close out the main thread
+            try {
+                gameThread.join();
+                monitorThread.join();
+            } catch (InterruptedException e) {
+                printTerminalMessage(e.getLocalizedMessage());
             }
         } else {
             System.out.println("Failed to connect to the server. Please try again later.");
         }
+        scanner.close();
         serverConnection.closeConnections();
+    }
+
+    /**
+     * Prints welcome message
+     */
+    private static void printWelcomeMessage() {
+        System.out.println("*********************************************");
+        System.out.println("* Welcome to CPSC 559 Group 31s Poker Game! *");
+        System.out.println("*********************************************");
+    }
+
+    /**
+     * Prints a given string to the terminal for the client
+     * 
+     * @param msg
+     */
+    private static void printTerminalMessage(String msg) {
+        System.out.println(msg);
     }
 
     /**
@@ -68,16 +99,16 @@ public class ClientMain {
      * @return Player Object
      */
     private static Player getPlayerInfo(Scanner scanner, int id) {
-        System.out.print("Enter your name: ");
+        printTerminalMessage("Enter your name: ");
         String playerName = scanner.nextLine();
         int depositAmount;
         while (true) {
-            System.out.print("Enter initial deposit amount: $");
+            printTerminalMessage("Enter initial deposit amount: $");
             try {
                 depositAmount = Integer.parseInt(scanner.nextLine());
                 break;
             } catch (NumberFormatException e) {
-                System.out.println("Invalid input! Please try again!");
+                printTerminalMessage("Invalid input! Please try again!");
             }
 
         }
@@ -96,7 +127,6 @@ public class ClientMain {
             Socket socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
             System.out.println("Connected to primary server at " + SERVER_ADDRESS + ":" + SERVER_PORT);
             serverConnection = new ClientServerConnection(socket);
-            monitorConnection();
             return true;
         } catch (IOException e) {
             System.err.println("Failed to connect to primary server: " + e.getClass().getSimpleName()
@@ -113,8 +143,8 @@ public class ClientMain {
         try {
             serverConnection.write(cmd);
         } catch (Exception e) {
-            System.err.println(
-                    "Error sending command object: " + e.getClass().getSimpleName() + " in ClientMain Line 149.");
+            printTerminalMessage(String.format(
+                    "Error sending command object: " + e.getClass().getSimpleName() + " in ClientMain Line 149."));
         }
     }
 
@@ -124,16 +154,16 @@ public class ClientMain {
      */
     private static void handleGameSelection(Scanner scanner) {
         sendCommand(Command.Type.INITIAL_CONN, null);
-        System.out.println("Waiting for available games...");
+        printTerminalMessage("Waiting for available games...");
         // build the server response command
         Command serverResponse = (Command) serverConnection.read();
         // check if the response is of type GAMES_LIST
         if (serverResponse.getType() == Command.Type.GAMES_LIST) {
             GameList games = (GameList) serverResponse.getPayload();
-            System.out.println(games.getGames());
+            printTerminalMessage(games.getGames());
         }
         // create the game choice from the player
-        System.out.print("Enter game number or type 'new': ");
+        printTerminalMessage("Enter game number or type 'new': ");
         GameChoice gc;
         if (scanner.hasNextInt()) {
             gc = new GameChoice(GameChoice.Choice.JOIN);
@@ -144,68 +174,72 @@ public class ClientMain {
         scanner.nextLine();
         sendCommand(Command.Type.GAME_CHOICE, gc);
         serverResponse = (Command) serverConnection.read();
-        System.out.println(((Message) serverResponse.getPayload()).getMsg());
-        System.out.println("Waiting for server table information!");
+        printTerminalMessage(((Message) serverResponse.getPayload()).getMsg());
+        printTerminalMessage("Waiting for server table information!");
         serverResponse = (Command) serverConnection.read();
         table_info = new InTable(true, ((TableInfo) serverResponse.getPayload()).getTableID());
         playing = true;
     }
 
     /**
-     * Client side game playing logic.
+     * Client side game playing logic. Runs on thread.
      * Waits for a Command object from the server and decides based on the payload
-     * [Game Over -> Game has ended, should return to table browser]
-     * [Message -> Print plain text]
-     * [Turn Token -> Its our turn to play, decide on a move for the turn]
+     * If null is received, error with input stream
      */
     private static void playGame(Scanner scanner) {
         while (playing) {
             Command serverResponse = (Command) serverConnection.read();
             if (serverResponse != null) {
-                if (serverResponse.getType() == Command.Type.GAME_OVER) {
-                    System.out.println("Game Over! Exiting!");
-                    playing = false;
-                }
-                if (serverResponse.getType() == Command.Type.MESSAGE) {
-                    System.out.println(((Message) serverResponse.getPayload()).getMsg());
-                    continue;
-                }
-                if (serverResponse.getType() == Command.Type.CLIENT_UPDATE_PLAYER) {
-                    player = (Player) serverResponse.getPayload();
-                    System.out.println("Updating player from server");
-                    continue;
-                }
-                if (serverResponse.getType() == Command.Type.TURN_TOKEN) {
-                    String allChoices = "It's your turn! Please enter a command! Available Commands Are: ";
-                    for (TurnChoice.Choice c : TurnChoice.Choice.values()) {
-                        allChoices += c.name() + ", ";
-                    }
-                    if (allChoices.endsWith(", ")) {
-                        allChoices = allChoices.substring(0, allChoices.length() - 2);
-                    }
-                    System.out.println(allChoices);
-                    String input;
-                    while (true) {
-                        try {
-                            input = scanner.nextLine().toUpperCase();
-                            TurnChoice.Choice choice = TurnChoice.Choice.valueOf(input);
-                            System.out.println("You chose: " + choice);
-                            TurnChoice tc = new TurnChoice(choice);
-                            if (choice == TurnChoice.Choice.BET) {
-                                System.out.println("Enter bet amount: ");
-                                int betAmount = Integer.parseInt(scanner.nextLine());
-                                System.out.println("You bet: $" + betAmount);
-                                tc.betAmount(betAmount);
-                            }
-                            sendCommand(Command.Type.TURN_CHOICE, tc);
-                            break;
-                        } catch (IllegalArgumentException e) {
-                            System.out.println("Invalid choice. Please enter CHECK, CALL, BET, FOLD, FUNDS, CARD.");
-                        }
-                    }
-                }
+                printTerminalMessage("Recieved null from input stream, retrying");
             } else {
+                handleServerGameResponse(serverResponse, scanner);
+            }
+        }
+    }
+
+    /**
+     * If we get a non null server response, handle the command type
+     * @param response non null server response
+     * @param scanner for playing input
+     */
+    private static void handleServerGameResponse(Command response, Scanner scanner) {
+        switch (response.getType()) {
+            case GAME_OVER:
+                printTerminalMessage("Game Over!");
+                playing = false;
                 break;
+            case MESSAGE:
+                printTerminalMessage(((Message) response.getPayload()).getMsg());
+                break;
+            case CLIENT_UPDATE_PLAYER:
+                player = (Player) response.getPayload();
+                printTerminalMessage("Updaying Player Information");
+                break;
+            case TURN_TOKEN:
+                handleTurn(scanner);
+                break;
+        }
+    }
+
+    /**
+     * Once turn token is recieved, handle player input for that turn
+     * @param scanner for player input
+     */
+    private static void handleTurn(Scanner scanner) {
+        printTerminalMessage("Your turn! Available commands: CHECK, CALL, BET, FOLD, FUNDS, CARD.");
+        while (true) {
+            try {
+                String input = scanner.nextLine().toUpperCase();
+                TurnChoice.Choice choice = TurnChoice.Choice.valueOf(input);
+                TurnChoice turnChoice = new TurnChoice(choice);
+                if (choice == TurnChoice.Choice.BET) {
+                    System.out.print("Enter bet amount: $");
+                    turnChoice.betAmount(Integer.parseInt(scanner.nextLine()));
+                }
+                sendCommand(Command.Type.TURN_CHOICE, turnChoice);
+                break;
+            } catch (IllegalArgumentException e) {
+                System.out.println("Invalid choice. Try again.");
             }
         }
     }
@@ -216,7 +250,7 @@ public class ClientMain {
      */
     private static void monitorConnection() {
         new Thread(() -> {
-            while (true) {
+            while (playing) {
                 try {
                     // Sleep a bit before checking the connection status.
                     Thread.sleep(5000);
@@ -226,9 +260,8 @@ public class ClientMain {
                         throw new IOException("Connection lost");
                     }
                 } catch (Exception e) {
-                    System.out.println("Attempting to reconnect...");
+                    printTerminalMessage("Attempting to reconnect...");
                     reconnectToServer();
-                    break;
                 }
             }
         }).start();
@@ -241,28 +274,20 @@ public class ClientMain {
      */
     private static void reconnectToServer() {
         // Close any existing resources.
-        boolean reconnected = false;
         serverConnection.closeConnections();
-        Scanner scanner = new Scanner(System.in);
         // Loop till we manage to get a connection
-        while (!reconnected) {
-            System.out.println("Reconnect attempt failed. Retrying...");
-            try {
-                Thread.sleep(3000);
-            } catch (InterruptedException ie) {
-            }
-            reconnected = connectToServer();
+        while (!connectToServer()) {
+            printTerminalMessage("Reconnect attempt failed. Retrying...");
+            try {Thread.sleep(3000);} catch (InterruptedException ie) {}
         }
-        System.out.println("Reconnected successfully!");
+        printTerminalMessage("Reconnected successfully!");
         sendCommand(Command.Type.PLAYER_INFO, player);
         if (table_info.getIn()) {
-            System.out.println("In table before disconnect...attempting to join table " + table_info.getTableID());
+            printTerminalMessage("In table before disconnect...attempting to join table " + table_info.getTableID());
             sendCommand(Command.Type.RECONNECT, table_info.getTableID());
-            playGame(scanner);
         } else {
-            System.out.println("Client was not in a table, getting table list");
-            handleGameSelection(scanner);
-            playGame(scanner);
+            printTerminalMessage("Client was not in a table, getting table list");
+            handleGameSelection(new Scanner(System.in));
         }
     }
 }
