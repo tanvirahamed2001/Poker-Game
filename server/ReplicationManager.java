@@ -116,11 +116,11 @@ public class ReplicationManager {
     public synchronized void sendStateUpdate(GameState state) {
         if (isPrimary) {
             for(int i = 0; i < backupSockets.size(); i++) {
-                System.out.println("Opening backup streams...");
-                ObjectOutputStream oos = backupOutputs.get(i);
-                ObjectInputStream ois = backupInputs.get(i);
-                System.out.println("Backup streams open...");
                 try {
+                    System.out.println("Opening backup streams...");
+                    ObjectOutputStream oos = new ObjectOutputStream(backupSockets.get(i).getOutputStream());
+                    ObjectInputStream ois = new ObjectInputStream(backupSockets.get(i).getInputStream());
+                    System.out.println("Backup streams open...");
                     System.out.println("Sending game state...");
                     backupSockets.get(i).setSoTimeout(10000);
                     oos.writeObject(state);
