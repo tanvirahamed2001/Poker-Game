@@ -171,9 +171,9 @@ public class ReplicationManager {
             try {
                 if (primaryIn != null) primaryIn.close();
                 if (replicationListener != null) replicationListener.close();
+                if  (primaryOut != null) primaryOut.close();
             } catch (IOException ex) { }
             // Reinitialize listener to wait for a new primary connection
-            terminateDeadPrimary();
             reinitializeReplicationListener();
         }
     }
@@ -234,16 +234,6 @@ public class ReplicationManager {
         }, HEARTBEAT_THRESHOLD, HEARTBEAT_THRESHOLD);
     }
 
-    private void terminateDeadPrimary() {
-        try {
-            replicationListener.close();
-            primaryIn.close();
-            primaryOut.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-    
     // Election-related methods (startElection, sendElectionMessage, startElectionListener) follow...
     private void startElection() {
         System.out.println("Server " + serverId + " starting election.");
