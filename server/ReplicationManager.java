@@ -355,6 +355,7 @@ public class ReplicationManager {
         for (Endpoint ep : backupEndpoints) {
             try {
                 Socket backupSocket = new Socket(ep.host, ep.port);
+                backupSockets.add(backupSocket);
                 System.out.println("Reconnected socket from backups...");
                 ObjectOutputStream oos = new ObjectOutputStream(backupSocket.getOutputStream());
                 oos.flush();
