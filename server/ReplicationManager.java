@@ -358,9 +358,6 @@ public class ReplicationManager {
                 oos.flush();
                 backupOutputs.add(oos);
                 System.out.println("Reconnected output stream from backups...");
-                ObjectInputStream ois = new ObjectInputStream(backupSocket.getInputStream());
-                System.out.println("Reconnected input stream from backups...");
-                backupInputs.add(ois);
                 System.out.println("New primary connected to backup at " + ep);
             } catch (IOException e) {
                 System.err.println("New primary failed to connect to backup at " + ep);
