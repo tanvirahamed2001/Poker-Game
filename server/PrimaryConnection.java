@@ -13,6 +13,7 @@ public class PrimaryConnection {
             this.primarySocket = primarySocket;
             this.primaryOut = new ObjectOutputStream(this.primarySocket.getOutputStream());
             this.primaryOut.flush();
+            //I swear to fuck if this works
             this.primaryIn = new ObjectInputStream(this.primarySocket.getInputStream());
         } catch (IOException e) {
             e.printStackTrace();

@@ -8,11 +8,12 @@ public class BackupConnection {
     private ObjectOutputStream backupOut;
     private ObjectInputStream backupIn;
 
-public BackupConnection(Socket backupSocket) {
+    public BackupConnection(Socket backupSocket) {
         try {
             this.backupSocket = backupSocket;
             this.backupOut = new ObjectOutputStream(this.backupSocket.getOutputStream());
             this.backupOut.flush();
+            //I swear to fuck if this works
             this.backupIn = new ObjectInputStream(this.backupSocket.getInputStream());
         } catch (IOException e) {
             e.printStackTrace();

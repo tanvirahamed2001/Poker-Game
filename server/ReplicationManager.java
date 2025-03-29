@@ -83,6 +83,7 @@ public class ReplicationManager {
                     Socket s = replicationListener.accept();
                     primaryConn = new PrimaryConnection(s);
                     new Thread(() -> listenForUpdates()).start();
+                    lastUpdateTimestamp = System.currentTimeMillis();
                     startHeartbeat();
                     break; // Successfully connected—exit the loop.
                 } catch (IOException e) {
