@@ -35,8 +35,7 @@ public class ClientMain {
             System.out.println(String.format("Connected to the game server with name %s and funds %d!", player.get_name(), player.view_funds()));
             sendCommand(Command.Type.PLAYER_INFO, player);
             handleGameSelection(scanner);
-            new Thread(() -> playGame(scanner)).start();;
-            while(playing) {}
+            playGame(scanner);
         } else {
             System.out.println("Failed to connect to the server. Please try again later.");
         }
@@ -93,7 +92,6 @@ public class ClientMain {
         try {
             Socket socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
             System.out.println("Connected to primary server at " + SERVER_ADDRESS + ":" + SERVER_PORT);
-            serverConnection = null;
             serverConnection = new ClientServerConnection(socket);
             monitorConnection();
             return true;
