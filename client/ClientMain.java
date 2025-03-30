@@ -31,8 +31,8 @@ public class ClientMain {
         // Begin connection to server
         if (connectToServer()) {
             // start monitoring the server connection with a monitor thread
-           // Thread monitorThread = new Thread(() -> monitorConnection());
-           // monitorThread.start();
+            Thread monitorThread = new Thread(() -> monitorConnection());
+            monitorThread.start();
             // get a id tag from the server
             id = getIDFromServer();
             // create the player object
@@ -45,12 +45,12 @@ public class ClientMain {
             handleGameSelection(scanner);
             // main game thread
             Thread gameThread = new Thread(() -> playGame(scanner));
-            gameThread.start(); 
+            gameThread.start();
             // wait for threads to be finished to close out the main thread
             try {
                 gameThread.join();
                 running = false;
-              //  monitorThread.join();
+                monitorThread.join();
             } catch (InterruptedException e) {
                 printTerminalMessage(e.getLocalizedMessage());
             }
@@ -190,14 +190,18 @@ public class ClientMain {
      * If null is received, error with input stream
      */
     private static void playGame(Scanner scanner) {
-        while (playing) {
-            Command serverResponse = (Command) serverConnection.read();
-            if (serverResponse == null) {
-                printTerminalMessage("Server connection lost. Attempting to reconnect...");
-                reconnectToServer();
-                continue;  // After reconnecting, continue the game loop
+        try {
+            while (playing) {
+                Command serverResponse = (Command) serverConnection.read();
+                if (serverResponse == null) {
+                    printTerminalMessage("Server connection lost. Attempting to reconnect...");
+                    Thread.sleep(10000);
+                } else {
+                    handleServerGameResponse(serverResponse, scanner);
+                }
             }
-            handleServerGameResponse(serverResponse, scanner);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
