@@ -45,7 +45,7 @@ public class ClientMain {
             handleGameSelection(scanner);
             // main game thread
             Thread gameThread = new Thread(() -> playGame(scanner));
-            gameThread.start();
+            gameThread.start(); 
             // wait for threads to be finished to close out the main thread
             try {
                 gameThread.join();
@@ -192,7 +192,7 @@ public class ClientMain {
     private static void playGame(Scanner scanner) {
         while (playing) {
             Command serverResponse = (Command) serverConnection.read();
-            if (serverResponse != null) {
+            if (serverResponse == null) {
                 printTerminalMessage("Recieved null from input stream, retrying");
             } else {
                 handleServerGameResponse(serverResponse, scanner);
