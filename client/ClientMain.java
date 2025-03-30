@@ -31,8 +31,8 @@ public class ClientMain {
         // Begin connection to server
         if (connectToServer()) {
             // start monitoring the server connection with a monitor thread
-            Thread monitorThread = new Thread(() -> monitorConnection());
-            monitorThread.start();
+           // Thread monitorThread = new Thread(() -> monitorConnection());
+            //monitorThread.start();
             // get a id tag from the server
             id = getIDFromServer();
             // create the player object
@@ -50,7 +50,7 @@ public class ClientMain {
             try {
                 gameThread.join();
                 running = false;
-                monitorThread.join();
+               // monitorThread.join();
             } catch (InterruptedException e) {
                 printTerminalMessage(e.getLocalizedMessage());
             }
@@ -194,8 +194,9 @@ public class ClientMain {
             while (playing) {
                 Command serverResponse = (Command) serverConnection.read();
                 if (serverResponse == null) {
+                    Thread.sleep(5000);
                     printTerminalMessage("Server connection lost. Attempting to reconnect...");
-                    Thread.sleep(10000);
+                    reconnectToServer();
                 } else {
                     handleServerGameResponse(serverResponse, scanner);
                 }
@@ -262,7 +263,7 @@ public class ClientMain {
         while (running) {
             try {
                 // Sleep a bit before checking the connection status.
-                Thread.sleep(5000000);
+                Thread.sleep(5000);
                 // A simple check: if the socket is closed or not connected, trigger a
                 // reconnect.
                 if (!serverConnection.connected()) {

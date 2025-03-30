@@ -24,6 +24,7 @@ public class ServerMain {
             if (!matching_games.containsKey(gameId)) {
                 matching_games.put(gameId, new ArrayList<>());
                 System.out.println("Restored Game " + gameId + " from replication state.");
+                
             }
         }
     }

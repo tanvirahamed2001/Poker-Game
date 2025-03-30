@@ -134,6 +134,7 @@ public class ServerTable implements Runnable {
             sendAllPlayers(Command.Type.MESSAGE, new Message("Resuming Table " + this.gameId));
             for (int i = 0; i < numPlayers; i++) {
                 sendPlayer(Command.Type.MESSAGE, new Message("Your cards are: " + players.get(i).show_all_cards()), i);
+                sendPlayer(Command.Type.MESSAGE, new Message("Turn 2: The Flop\nCards: " + tablecards.toString()), i);
             }
             System.out.println((new GameState(gameId, pot, currentTurn, currentplayer, lastActive, numPlayers, currentbet, inprogress, activePlayers, roundCompleted, players, currentBets, tablecards, deck)).toString());
         }
@@ -169,14 +170,17 @@ public class ServerTable implements Runnable {
                     tablecards.add(deck.deal_card());
                     tablecards.add(deck.deal_card());
                     tablecards.add(deck.deal_card());
+                    replicateGameState();
                     sendAllPlayers(Command.Type.MESSAGE, new Message("Turn 2: The Flop\nCards: " + tablecards.toString()));
                     break;
                 case 3: // Turn.
                     tablecards.add(deck.deal_card());
+                    replicateGameState();
                     sendAllPlayers(Command.Type.MESSAGE, new Message("Turn 3: The Turn\nCard: " + tablecards.get(3).toString()));
                     break;
                 case 4: // River.
                     tablecards.add(deck.deal_card());
+                    replicateGameState();
                     sendAllPlayers(Command.Type.MESSAGE, new Message("Turn 4: The River\nCard: " + tablecards.get(4).toString()));
                     break;
                 case 5: // Showdown.
@@ -352,7 +356,8 @@ public class ServerTable implements Runnable {
     
     private void replicateGameState() {
         System.out.println("Beginning Game " + gameId + " replication!");
-        GameState currentState = new GameState(gameId, pot, currentTurn, currentplayer, lastActive, numPlayers, currentbet, inprogress, activePlayers, roundCompleted, players, currentBets, tablecards, deck);
+        ArrayList<Card> tablecardsSnapshot = new ArrayList<>(tablecards);
+        GameState currentState = new GameState(gameId, pot, currentTurn, currentplayer, lastActive, numPlayers, currentbet, inprogress, activePlayers, roundCompleted, players, currentBets, tablecardsSnapshot, deck);
         ReplicationManager.getInstance(true).sendStateUpdate(currentState);
         System.out.println("Finished Game " + gameId + " replication!");
         replicatePlayer();
