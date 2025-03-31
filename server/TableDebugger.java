@@ -1,6 +1,5 @@
 import java.util.ArrayList;
 
-import shared.PlayerConnection;
 import shared.card_based.Card;
 import shared.card_based.Card.Rank;
 import shared.card_based.Card.Suit;

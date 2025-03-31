@@ -6,7 +6,7 @@ import shared.Player;
 import shared.card_based.*;
 
 public class GameState implements Serializable {
-    private int gameId, pot, currentTurn, currentPlayer, lastActive, numPlayers, currentBet;
+    private int gameId, pot, currentTurn, currentPlayer, lastActive, numPlayers, currentBet, lamportTimestamp;
     private boolean inprogress, activePlayers[], roundCompleted;
     private ArrayList<Player> players;
     private ArrayList<Integer> currentBets;
@@ -116,5 +116,13 @@ public class GameState implements Serializable {
     @Override
     public String toString() {
         return this.gameId + " " + this.players + " " + this.pot + " " + this.currentTurn + " " + this.tableCards + " " + this.inprogress + " " + this.currentPlayer + " " + this.saveDeck;
+    }
+
+    public void setLamportTS(int ts) {
+        this.lamportTimestamp = ts;
+    }
+
+    public int getLamportTS(int ts) {
+        return this.lamportTimestamp;
     }
 }

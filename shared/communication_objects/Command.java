@@ -18,6 +18,7 @@ public class Command implements Serializable {
 
     private Type type;
     private Object payload;
+    private int lamportTimestamp;
 
     public Command(Type type, Object payload) {
         this.type = type;
@@ -30,5 +31,13 @@ public class Command implements Serializable {
 
     public Object getPayload() {
         return this.payload;
+    }
+
+    public void setLamportTS(int ts) {
+        this.lamportTimestamp = ts;
+    }
+
+    public int getLamportTS() {
+        return this.lamportTimestamp;
     }
 }

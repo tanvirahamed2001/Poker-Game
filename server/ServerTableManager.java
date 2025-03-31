@@ -4,7 +4,6 @@ import java.net.Socket;
 import java.util.HashMap;
 import java.util.ArrayList;
 import shared.Player;
-import shared.PlayerConnection;
 import shared.communication_objects.*;
 
 public class ServerTableManager implements Runnable {

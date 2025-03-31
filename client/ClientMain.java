@@ -21,8 +21,10 @@ public class ClientMain {
     private static InTable table_info = new InTable(false, 0);
     private static boolean playing = false;
     private static boolean running = false;
+    private static LamportClock lamportClock;
 
     public static void main(String[] args) {
+        lamportClock = new LamportClock();
         running = true;
         // Init a scanner
         Scanner scanner = new Scanner(System.in);
@@ -144,11 +146,27 @@ public class ClientMain {
     private static void sendCommand(Command.Type type, Object obj) {
         Command cmd = new Command(type, obj);
         try {
+            int ts = lamportClock.sendEvent();
+            cmd.setLamportTS(ts);
             serverConnection.write(cmd);
         } catch (Exception e) {
             printTerminalMessage(String.format(
                     "Error sending command object: " + e.getClass().getSimpleName() + " in ClientMain Line 149."));
         }
+    }
+
+    /**
+     * Handles reading in commands and seting lamport clocks
+     * @return
+     */
+    private static Command readCommand() {
+        Command cmd = (Command) serverConnection.read();
+        if(cmd == null) {
+            return null;
+        }
+        int senderTS = cmd.getLamportTS();
+        lamportClock.receievedEvent(senderTS);
+        return cmd;
     }
 
     /**
@@ -159,7 +177,7 @@ public class ClientMain {
         sendCommand(Command.Type.INITIAL_CONN, null);
         printTerminalMessage("Waiting for available games...");
         // build the server response command
-        Command serverResponse = (Command) serverConnection.read();
+        Command serverResponse = readCommand();
         // check if the response is of type GAMES_LIST
         if (serverResponse.getType() == Command.Type.GAMES_LIST) {
             GameList games = (GameList) serverResponse.getPayload();
@@ -176,10 +194,10 @@ public class ClientMain {
         }
         scanner.nextLine();
         sendCommand(Command.Type.GAME_CHOICE, gc);
-        serverResponse = (Command) serverConnection.read();
+        serverResponse = readCommand();
         printTerminalMessage(((Message) serverResponse.getPayload()).getMsg());
         printTerminalMessage("Waiting for server table information!");
-        serverResponse = (Command) serverConnection.read();
+        serverResponse = readCommand();
         table_info = new InTable(true, ((TableInfo) serverResponse.getPayload()).getTableID());
         playing = true;
     }
@@ -192,7 +210,7 @@ public class ClientMain {
     private static void playGame(Scanner scanner) {
         try {
             while (playing) {
-                Command serverResponse = (Command) serverConnection.read();
+                Command serverResponse = readCommand();
                 if (serverResponse == null) {
                     Thread.sleep(5000);
                     printTerminalMessage("Server connection lost. Attempting to reconnect...");

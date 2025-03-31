@@ -34,7 +34,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import shared.Player;
-import shared.PlayerConnection;
 import shared.card_based.*;
 import shared.card_based.Card.*;
 import shared.card_based.Poker_Hands.winners;
@@ -351,7 +350,8 @@ public class ServerTable implements Runnable {
     }
     
     private void sendPlayer(Command.Type type, Object obj, int index) {
-            connections.get(index).sendCommand(type, obj);
+        int ts = ServerLamportClock.getInstance().sendEvent();
+        connections.get(index).sendCommand(type, obj);
     }
     
     private void replicateGameState() {

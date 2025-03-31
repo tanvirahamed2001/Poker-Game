@@ -23,6 +23,8 @@ public class ReplicationManager {
     // Election fields.
     private int serverId;
     private List<Integer> allServerIds;
+
+    private LamportClock lamportClock;
     
     // Helper class to define an endpoint.
     private static class Endpoint {
@@ -57,6 +59,7 @@ public class ReplicationManager {
     private Map<Integer, GameState> replicatedGameStates = new HashMap<>();
     
     private ReplicationManager(boolean isPrimary) {
+        this.lamportClock = new LamportClock();
         this.isPrimary = isPrimary;
         if (isPrimary) {
             // Use system property "serverId" (default 4) for the primary.
@@ -185,7 +188,7 @@ public class ReplicationManager {
             currentTable.updateState(state);
         } else {
             System.err.println("No active game for game ID " + state.getGameId() + ". Creating new instance from replication state.");
-            ArrayList<shared.PlayerConnection> dummyConnections = new ArrayList<>();
+            ArrayList<PlayerConnection> dummyConnections = new ArrayList<>();
             ServerTable newTable = new ServerTable(state.getGameId(), dummyConnections);
             newTable.updateState(state);
         }
