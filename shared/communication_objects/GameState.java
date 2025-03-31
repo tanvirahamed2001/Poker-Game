@@ -13,7 +13,7 @@ public class GameState implements Serializable {
     private ArrayList<Card> tableCards;
     private Deck saveDeck;
 
-    public GameState(int gameId, int pot, int currentTurn, int currentPlayer, int lastActive, int numPlayers, int currentBet,
+    public GameState(int gameId, int pot, int currentTurn, int currentPlayer, int lastActive, int numPlayers, int currentBet, int ts,
                     boolean inprogress, boolean activePlayers[], boolean roundCompleted,
                     ArrayList<Player> players,
                     ArrayList<Integer> currentBets,
@@ -25,6 +25,7 @@ public class GameState implements Serializable {
         this.lastActive = lastActive;
         this.numPlayers = numPlayers;
         this.currentBet = currentBet;
+        this.lamportTimestamp = ts;
         this.inprogress = inprogress;
         this.activePlayers = activePlayers;
         this.roundCompleted = roundCompleted;
@@ -122,7 +123,7 @@ public class GameState implements Serializable {
         this.lamportTimestamp = ts;
     }
 
-    public int getLamportTS(int ts) {
+    public int getLamportTS() {
         return this.lamportTimestamp;
     }
 }

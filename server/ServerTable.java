@@ -135,7 +135,6 @@ public class ServerTable implements Runnable {
                 sendPlayer(Command.Type.MESSAGE, new Message("Your cards are: " + players.get(i).show_all_cards()), i);
                 sendPlayer(Command.Type.MESSAGE, new Message("Turn 2: The Flop\nCards: " + tablecards.toString()), i);
             }
-            System.out.println((new GameState(gameId, pot, currentTurn, currentplayer, lastActive, numPlayers, currentbet, inprogress, activePlayers, roundCompleted, players, currentBets, tablecards, deck)).toString());
         }
         // Main game loop for each street until showdown.
         while (currentTurn <= 5) {
@@ -350,14 +349,13 @@ public class ServerTable implements Runnable {
     }
     
     private void sendPlayer(Command.Type type, Object obj, int index) {
-        int ts = ServerLamportClock.getInstance().sendEvent();
         connections.get(index).sendCommand(type, obj);
     }
     
     private void replicateGameState() {
         System.out.println("Beginning Game " + gameId + " replication!");
         ArrayList<Card> tablecardsSnapshot = new ArrayList<>(tablecards);
-        GameState currentState = new GameState(gameId, pot, currentTurn, currentplayer, lastActive, numPlayers, currentbet, inprogress, activePlayers, roundCompleted, players, currentBets, tablecardsSnapshot, deck);
+        GameState currentState = new GameState(gameId, pot, currentTurn, currentplayer, lastActive, numPlayers, currentbet, ServerLamportClock.getInstance().sendEvent(), inprogress, activePlayers, roundCompleted, players, currentBets, tablecardsSnapshot, deck);
         ReplicationManager.getInstance(true).sendStateUpdate(currentState);
         System.out.println("Finished Game " + gameId + " replication!");
         replicatePlayer();

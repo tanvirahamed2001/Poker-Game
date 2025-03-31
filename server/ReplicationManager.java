@@ -115,6 +115,7 @@ public class ReplicationManager {
                     backup.write(state);
                     System.out.println("Game state sent...");
                     Command response = (Command)backup.read();
+                    lamportRecieve(response.getLamportTS());
                     if(response.getType() != Command.Type.REPLICATION_ACK) {
                         throw new ReplicationExecption("No Ack From Backup...");
                     } else {
@@ -140,11 +141,14 @@ public class ReplicationManager {
             Object obj = primaryConn.read();
             if (obj instanceof GameState) {
                 GameState receivedState = (GameState) obj;
+                lamportRecieve(receivedState.getLamportTS());
                 updateLocalGameState(receivedState);
                 lastUpdateTimestamp = System.currentTimeMillis();
                 System.out.println("Received and applied GameState update for game " + receivedState.getGameId());
                 System.out.println("Now sending ACK to primary server");
-                primaryConn.write(new Command(Command.Type.REPLICATION_ACK, "ack"));
+                Command ack = new Command(Command.Type.REPLICATION_ACK, "ack");
+                ack.setLamportTS(ServerLamportClock.getInstance().sendEvent());
+                primaryConn.write(ack);
             } else if (obj == null) {
                 System.err.println("Replication connection lost...");
                 System.out.println("Closing lost primary connection...");
@@ -156,6 +160,10 @@ public class ReplicationManager {
                 System.out.println("Received non-GameState object: " + obj.getClass().getName());
             }
         }
+    }
+
+    private void lamportRecieve(int ts) {
+        ServerLamportClock.getInstance().receievedEvent(ts);
     }
 
     private void reinitializeReplicationListener() {
@@ -365,6 +373,7 @@ private void startClientListener() {
         try {
             PlayerConnection pc = new PlayerConnection(null, client);
             Command cmd = (Command) pc.readCommand();
+            ServerLamportClock.getInstance().receievedEvent(cmd.getLamportTS());
             if (cmd.getType() == Command.Type.PLAYER_INFO) {
                 Player player = (Player) cmd.getPayload();
                 pc.updatePlayer(player);
