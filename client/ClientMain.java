@@ -13,8 +13,7 @@ import shared.Player;
 import shared.communication_objects.*;
 
 public class ClientMain {
-    private static final List<String> SERVER_IPS = Arrays.asList(
-            "75.159.156.131");
+    private static final List<String> SERVER_IPS = Arrays.asList();
     private static final int SERVER_PORT = 6834;
     private static ClientServerConnection serverConnection;
     private static Player player;
@@ -68,9 +67,9 @@ public class ClientMain {
      * Prints welcome message
      */
     private static void printWelcomeMessage() {
-        System.out.println("********************************************");
-        System.out.println("* Welcome to CPSC 559 Group 31s HoldemNet! *");
-        System.out.println("********************************************");
+        System.out.println("*************************");
+        System.out.println("* Welcome to HoldemNet! *");
+        System.out.println("*************************");
     }
 
     /**
@@ -96,7 +95,7 @@ public class ClientMain {
             lamportClock.receievedEvent(senderTS);
             return id.getID();
         } else {
-            return 0;
+            return 0; 
         }
     }
 
@@ -139,7 +138,8 @@ public class ClientMain {
                 serverConnection = new ClientServerConnection(socket);
                 break;
             } catch (IOException e) {
-                System.err.println("Failed to connect to primary server: " + e.getClass().getSimpleName() + " in ClientMain Line 119.");
+                System.err.println("Failed to connect to primary server");
+                e.printStackTrace();
                 failures++;
             }
         }
