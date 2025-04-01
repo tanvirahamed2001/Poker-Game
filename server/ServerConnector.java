@@ -1,6 +1,8 @@
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
@@ -19,7 +21,9 @@ public class ServerConnector implements Runnable {
     public void run() {
         ExecutorService pool = Executors.newCachedThreadPool(); // Thread pool for handling client connections
 
-        try (ServerSocket connector = new ServerSocket(6834)) {
+        try (ServerSocket connector = new ServerSocket()) {
+            InetAddress address = InetAddress.getByName("10.44.124.22");
+            connector.bind(new InetSocketAddress(address, 6834));
             System.out.println("Server is running and waiting for connections on port 6834...");
 
             while (true) {
