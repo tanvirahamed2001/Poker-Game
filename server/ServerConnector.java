@@ -22,7 +22,7 @@ public class ServerConnector implements Runnable {
         ExecutorService pool = Executors.newCachedThreadPool(); // Thread pool for handling client connections
 
         try (ServerSocket connector = new ServerSocket()) {
-            InetAddress address = InetAddress.getByName("10.44.124.21");
+            InetAddress address = InetAddress.getByName("2001:56a:79e4:3800:8158:48b3:81a:575e");
             connector.bind(new InetSocketAddress(address, 6834));
             System.out.println("Server is running and waiting for connections on port 6834...");
 

@@ -13,7 +13,7 @@ import shared.Player;
 import shared.communication_objects.*;
 
 public class ClientMain {
-    private static final List<String> SERVER_IPS = Arrays.asList("10.44.124.21");
+    private static final List<String> SERVER_IPS = Arrays.asList("2001:56a:79e4:3800:8158:48b3:81a:575e");
     private static final int SERVER_PORT = 6834;
     private static ClientServerConnection serverConnection;
     private static Player player;
