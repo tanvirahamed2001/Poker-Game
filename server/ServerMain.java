@@ -8,11 +8,12 @@ import shared.Player;
 import shared.communication_objects.*;
 
 public class ServerMain {
+    private static int id = 1;
+    public static final int maxplayers = 2;
+
     private static ExecutorService gamepool = Executors.newFixedThreadPool(100);
     private static HashMap<Integer, ArrayList<PlayerConnection>> matching_games = new HashMap<>();
-    public static final int maxplayers = 2;
-    private static int id = 1;
-    
+
     public static HashMap<Integer, ArrayList<PlayerConnection>> getGames() {
         return matching_games;
     }

@@ -1,4 +1,3 @@
-
 // The main client application for our players
 // Will ask the player for their names and possible amount of funds to begin playing with
 // Might need to make fund authorization a server side thing as well at some point
@@ -8,13 +7,15 @@
 import java.io.*;
 import java.net.*;
 import java.util.Scanner;
+import java.util.Arrays;
+import java.util.List;
 import shared.Player;
 import shared.communication_objects.*;
 
 public class ClientMain {
-    private static final String SERVER_ADDRESS = "localhost"; // Place blocker where we will put IP address UofC systems
-                                                              // to keep it consistent
-    private static final int SERVER_PORT = 6834; // Match server port
+    private static final List<String> SERVER_IPS = Arrays.asList(
+            "75.159.156.131");
+    private static final int SERVER_PORT = 6834;
     private static ClientServerConnection serverConnection;
     private static Player player;
     private static int id;
@@ -33,8 +34,8 @@ public class ClientMain {
         // Begin connection to server
         if (connectToServer()) {
             // start monitoring the server connection with a monitor thread
-           // Thread monitorThread = new Thread(() -> monitorConnection());
-            //monitorThread.start();
+            // Thread monitorThread = new Thread(() -> monitorConnection());
+            // monitorThread.start();
             // get a id tag from the server
             id = getIDFromServer();
             // create the player object
@@ -52,7 +53,7 @@ public class ClientMain {
             try {
                 gameThread.join();
                 running = false;
-               // monitorThread.join();
+                // monitorThread.join();
             } catch (InterruptedException e) {
                 printTerminalMessage(e.getLocalizedMessage());
             }
@@ -67,9 +68,9 @@ public class ClientMain {
      * Prints welcome message
      */
     private static void printWelcomeMessage() {
-        System.out.println("*********************************************");
-        System.out.println("* Welcome to CPSC 559 Group 31s Poker Game! *");
-        System.out.println("*********************************************");
+        System.out.println("********************************************");
+        System.out.println("* Welcome to CPSC 559 Group 31s HoldemNet! *");
+        System.out.println("********************************************");
     }
 
     /**
@@ -91,6 +92,8 @@ public class ClientMain {
         Command cmd = (Command) serverConnection.read();
         if (cmd.getPayload() instanceof ClientServerId) {
             ClientServerId id = (ClientServerId) cmd.getPayload();
+            int senderTS = cmd.getLamportTS();
+            lamportClock.receievedEvent(senderTS);
             return id.getID();
         } else {
             return 0;
@@ -128,16 +131,22 @@ public class ClientMain {
      * @return true or false
      */
     private static boolean connectToServer() {
-        try {
-            Socket socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
-            System.out.println("Connected to primary server at " + SERVER_ADDRESS + ":" + SERVER_PORT);
-            serverConnection = new ClientServerConnection(socket);
-            return true;
-        } catch (IOException e) {
-            System.err.println("Failed to connect to primary server: " + e.getClass().getSimpleName()
-                    + " in ClientMain Line 119.");
+        int failures = 0;
+        for (String ip : SERVER_IPS) {
+            try {
+                Socket socket = new Socket(ip, SERVER_PORT);
+                System.out.println("Connected to primary server at " + ip + ":" + SERVER_PORT);
+                serverConnection = new ClientServerConnection(socket);
+                break;
+            } catch (IOException e) {
+                System.err.println("Failed to connect to primary server: " + e.getClass().getSimpleName() + " in ClientMain Line 119.");
+                failures++;
+            }
+        }
+        if(failures == SERVER_IPS.size()) {
             return false;
         }
+        return true;
     }
 
     /**
@@ -157,11 +166,12 @@ public class ClientMain {
 
     /**
      * Handles reading in commands and seting lamport clocks
+     * 
      * @return
      */
     private static Command readCommand() {
         Command cmd = (Command) serverConnection.read();
-        if(cmd == null) {
+        if (cmd == null) {
             return null;
         }
         int senderTS = cmd.getLamportTS();
