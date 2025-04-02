@@ -249,7 +249,7 @@ public class ReplicationManager {
     private boolean sendElectionMessage(int targetId) throws IOException {
         int baseElectionPort = 7000;
         int targetPort = baseElectionPort + targetId;
-        try (Socket socket = new Socket(targetHost, targetPort)) {
+        try (Socket socket = new Socket("localhost", targetPort)) {
             socket.setSoTimeout(3000);
             ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
             oos.flush();
