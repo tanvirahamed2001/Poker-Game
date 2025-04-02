@@ -29,7 +29,7 @@ public class ReplicationManager {
     // Helper class to define an endpoint.
     private static class Endpoint {
         String host;
-        int port;
+        int port = 6835;
         public Endpoint(String host, int port) {
             this.host = host;
             this.port = port;
@@ -42,14 +42,11 @@ public class ReplicationManager {
     
     // List of backup endpoints.
     private final List<Endpoint> backupEndpoints = Arrays.asList(
-        new Endpoint("localhost", 6836),
-        new Endpoint("localhost", 6837),
-        new Endpoint("localhost", 6838),
-        new Endpoint("localhost", 6839)
+        new Endpoint("10.44.124.22", 6835)
     );
     
     // Ports.
-    private final int DEFAULT_REPLICATION_PORT = 6836;
+    private final int DEFAULT_REPLICATION_PORT = 6835;
     private final int CLIENT_PORT = 6834;
     
     // Heartbeat threshold in ms.
