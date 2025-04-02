@@ -8,62 +8,62 @@ import shared.*;
 public class ReplicationManager {
     private static ReplicationManager instance;
     private boolean isPrimary;
-
+    
     // For primary mode: store backup sockets and their output streams.
     private List<BackupConnection> backupConns = new ArrayList<>();
-
-    // For backup mode: a ServerSocket to listen for replication updates and an
-    // ObjectInputStream for the primary.
+    
+    // For backup mode: a ServerSocket to listen for replication updates and an ObjectInputStream for the primary.
     private ServerSocket replicationListener;
     private PrimaryConnection primaryConn;
-
+    
     // Heartbeat timer for detecting failure.
     private Timer heartbeatTimer;
     private long lastUpdateTimestamp;
-
+    
     // Election fields.
     private int serverId;
     private List<Integer> allServerIds;
 
     private LamportClock lamportClock;
-
+    
     // Helper class to define an endpoint.
     private static class Endpoint {
         String host;
         int port;
-
         public Endpoint(String host, int port) {
             this.host = host;
             this.port = port;
         }
-
         @Override
         public String toString() {
             return host + ":" + port;
         }
     }
-
+    
     // List of backup endpoints.
     private final List<Endpoint> backupEndpoints = Arrays.asList(
-            new Endpoint("10.44.124.22", 6835),
-            new Endpoint("10.44.124.21", 6835));
-
+        new Endpoint("10.44.124.21", 6836),
+        new Endpoint("10.44.124.21", 6837),
+        new Endpoint("10.44.124.21", 6838),
+        new Endpoint("10.44.124.21", 6839)
+    );
+    
     // Ports.
-    private final int DEFAULT_REPLICATION_PORT = 6835;
+    private final int DEFAULT_REPLICATION_PORT = 6836;
     private final int CLIENT_PORT = 6834;
-
+    
     // Heartbeat threshold in ms.
     private final long HEARTBEAT_THRESHOLD = 5000;
-
+    
     // NEW: Map to store the latest replicated game states.
     private Map<Integer, GameState> replicatedGameStates = new HashMap<>();
-
+    
     private ReplicationManager(boolean isPrimary) {
         this.lamportClock = new LamportClock();
         this.isPrimary = isPrimary;
         if (isPrimary) {
             // Use system property "serverId" (default 4) for the primary.
-            this.serverId = Integer.getInteger("serverId", 5);
+            this.serverId = Integer.getInteger("serverId", 4);
             // Connect to each backup.
             for (Endpoint ep : backupEndpoints) {
                 try {
@@ -76,18 +76,12 @@ public class ReplicationManager {
         } else {
             // Use system property "backupId" (default 1) for backups.
             this.serverId = Integer.getInteger("backupId", 1);
-            try {
-                InetAddress ip = InetAddress.getLocalHost();
-                System.out.print(ip.getHostAddress());
-            } catch (Exception e) {
-            }
             int replicationPort = Integer.getInteger("replicationPort", DEFAULT_REPLICATION_PORT);
-            while (true) {
+            while(true) {
                 try {
                     if (replicationListener == null || replicationListener.isClosed()) {
                         replicationListener = new ServerSocket(replicationPort);
-                        System.out.println("Backup " + serverId + " waiting for primary replication connection on port "
-                                + replicationPort);
+                        System.out.println("Backup " + serverId + " waiting for primary replication connection on port " + replicationPort);
                     }
                     Socket s = replicationListener.accept();
                     primaryConn = new PrimaryConnection(s);
@@ -103,26 +97,26 @@ public class ReplicationManager {
         this.allServerIds = Arrays.asList(1, 2, 3, 4, 5);
         startElectionListener();
     }
-
+    
     public static synchronized ReplicationManager getInstance(boolean isPrimary) {
         if (instance == null) {
             instance = new ReplicationManager(isPrimary);
         }
         return instance;
     }
-
+    
     // Called by the primary to broadcast GameState updates.
     public synchronized void sendStateUpdate(GameState state) {
         if (isPrimary) {
-            for (int i = 0; i < backupConns.size(); i++) {
+            for(int i = 0; i < backupConns.size(); i++) {
                 BackupConnection backup = backupConns.get(i);
                 try {
                     backup.setTimeout(10000);
                     backup.write(state);
                     System.out.println("Game state sent...");
-                    Command response = (Command) backup.read();
+                    Command response = (Command)backup.read();
                     lamportRecieve(response.getLamportTS());
-                    if (response.getType() != Command.Type.REPLICATION_ACK) {
+                    if(response.getType() != Command.Type.REPLICATION_ACK) {
                         throw new ReplicationExecption("No Ack From Backup...");
                     } else {
                         System.out.println("Recived replication ACK...");
@@ -134,7 +128,7 @@ public class ReplicationManager {
             }
         }
     }
-
+    
     class ReplicationExecption extends Exception {
         public ReplicationExecption(String msg) {
             super(msg);
@@ -179,8 +173,7 @@ public class ReplicationManager {
             try {
                 if (replicationListener == null || replicationListener.isClosed()) {
                     replicationListener = new ServerSocket(replicationPort);
-                    System.out.println("Backup " + serverId + " re-waiting for primary replication connection on port "
-                            + replicationPort);
+                    System.out.println("Backup " + serverId + " re-waiting for primary replication connection on port " + replicationPort);
                 }
                 Socket s = replicationListener.accept();
                 primaryConn = new PrimaryConnection(s);
@@ -190,14 +183,11 @@ public class ReplicationManager {
                 break;
             } catch (IOException e) {
                 System.err.println("Retrying replication connection failed: " + e.getMessage());
-                try {
-                    Thread.sleep(3000);
-                } catch (InterruptedException ie) {
-                }
+                try { Thread.sleep(3000); } catch (InterruptedException ie) { }
             }
         }
     }
-
+    
     // NEW: Save the replicated game state and update the corresponding game table.
     private void updateLocalGameState(GameState state) {
         replicatedGameStates.put(state.getGameId(), state);
@@ -205,14 +195,13 @@ public class ReplicationManager {
         if (currentTable != null) {
             currentTable.updateState(state);
         } else {
-            System.err.println("No active game for game ID " + state.getGameId()
-                    + ". Creating new instance from replication state.");
+            System.err.println("No active game for game ID " + state.getGameId() + ". Creating new instance from replication state.");
             ArrayList<PlayerConnection> dummyConnections = new ArrayList<>();
             ServerTable newTable = new ServerTable(state.getGameId(), dummyConnections);
             newTable.updateState(state);
         }
     }
-
+    
     // Heartbeat mechanism to detect primary failure.
     private void startHeartbeat() {
         if (heartbeatTimer != null) {
@@ -233,8 +222,7 @@ public class ReplicationManager {
         }, HEARTBEAT_THRESHOLD, HEARTBEAT_THRESHOLD);
     }
 
-    // Election-related methods (startElection, sendElectionMessage,
-    // startElectionListener) follow...
+    // Election-related methods (startElection, sendElectionMessage, startElectionListener) follow...
     private void startElection() {
         System.out.println("Server " + serverId + " starting election.");
         boolean higherServerAlive = false;
@@ -258,11 +246,12 @@ public class ReplicationManager {
             System.out.println("A higher server is alive. Waiting for new leader announcement.");
         }
     }
-
+    
     private boolean sendElectionMessage(int targetId) throws IOException {
+        String targetHost = "localhost";
         int baseElectionPort = 7000;
         int targetPort = baseElectionPort + targetId;
-        try (Socket socket = new Socket("localhost", targetPort)) {
+        try (Socket socket = new Socket(targetHost, targetPort)) {
             socket.setSoTimeout(3000);
             ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
             oos.flush();
@@ -280,7 +269,7 @@ public class ReplicationManager {
         }
         return false;
     }
-
+    
     private void startElectionListener() {
         new Thread(() -> {
             int baseElectionPort = 7000;
@@ -319,7 +308,7 @@ public class ReplicationManager {
             }
         }).start();
     }
-
+    
     private void promoteToPrimary() {
         isPrimary = true;
         System.out.println("Server " + serverId + " is now promoted to primary.");
@@ -338,7 +327,7 @@ public class ReplicationManager {
         // Start accepting client connections as the new primary.
         new Thread(() -> startClientListener()).start();
     }
-
+    
     // Connect to all backups.
     private void connectBackupsToNewPrimary() {
         for (Endpoint ep : backupEndpoints) {
@@ -351,33 +340,32 @@ public class ReplicationManager {
             }
         }
     }
+    
+// Add a flag to ensure the client listener is only started once.
+private volatile boolean clientListenerStarted = false;
 
-    // Add a flag to ensure the client listener is only started once.
-    private volatile boolean clientListenerStarted = false;
-
-    private void startClientListener() {
-        // Check if the client listener is already running.
-        if (clientListenerStarted) {
-            System.out.println("Client listener already running.");
-            return;
-        }
-
-        try {
-            // Try binding to the client port.
-            ServerSocket clientSocket = new ServerSocket(CLIENT_PORT);
-            clientSocket.setReuseAddress(true);
-            clientListenerStarted = true;
-            System.out.println("New primary now accepting client connections on port " + CLIENT_PORT);
-            while (true) {
-                Socket client = clientSocket.accept();
-                new Thread(() -> handleClientConnection(client)).start();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            System.err.println("Failed to bind to port " + CLIENT_PORT
-                    + ". Ensure the old primary is terminated or the port is free.");
-        }
+private void startClientListener() {
+    // Check if the client listener is already running.
+    if (clientListenerStarted) {
+        System.out.println("Client listener already running.");
+        return;
     }
+    
+    try {
+        // Try binding to the client port.
+        ServerSocket clientSocket = new ServerSocket(CLIENT_PORT);
+        clientSocket.setReuseAddress(true);
+        clientListenerStarted = true;
+        System.out.println("New primary now accepting client connections on port " + CLIENT_PORT);
+        while (true) {
+            Socket client = clientSocket.accept();
+            new Thread(() -> handleClientConnection(client)).start();
+        }
+    } catch (IOException e) {
+        e.printStackTrace();
+        System.err.println("Failed to bind to port " + CLIENT_PORT + ". Ensure the old primary is terminated or the port is free.");
+    }
+}
 
     // Handle a client connection post-failover.
     private void handleClientConnection(Socket client) {
