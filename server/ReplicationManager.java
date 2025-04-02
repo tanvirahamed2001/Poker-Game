@@ -61,7 +61,7 @@ public class ReplicationManager {
         this.isPrimary = isPrimary;
         if (isPrimary) {
             // Use system property "serverId" (default 4) for the primary.
-            this.serverId = Integer.getInteger("serverId", 4);
+            this.serverId = Integer.getInteger("serverId", 5);
             // Connect to each backup.
             for (Endpoint ep : backupEndpoints) {
                 try {
@@ -74,6 +74,7 @@ public class ReplicationManager {
         } else {
             // Use system property "backupId" (default 1) for backups.
             this.serverId = Integer.getInteger("backupId", 1);
+            System.out.print(this.serverId);
             int replicationPort = Integer.getInteger("replicationPort", DEFAULT_REPLICATION_PORT);
             while(true) {
                 try {
