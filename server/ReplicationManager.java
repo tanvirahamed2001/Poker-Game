@@ -29,7 +29,7 @@ public class ReplicationManager {
     // Helper class to define an endpoint.
     private static class Endpoint {
         String host;
-        int port = 6835;
+        int port;
         public Endpoint(String host, int port) {
             this.host = host;
             this.port = port;
@@ -42,7 +42,8 @@ public class ReplicationManager {
     
     // List of backup endpoints.
     private final List<Endpoint> backupEndpoints = Arrays.asList(
-        new Endpoint("10.44.124.22", 6835)
+        new Endpoint("10.44.124.22", 6835),
+        new Endpoint("10.44.124.21", 6835)
     );
     
     // Ports.
@@ -245,7 +246,6 @@ public class ReplicationManager {
     }
     
     private boolean sendElectionMessage(int targetId) throws IOException {
-        String targetHost = "localhost";
         int baseElectionPort = 7000;
         int targetPort = baseElectionPort + targetId;
         try (Socket socket = new Socket(targetHost, targetPort)) {
