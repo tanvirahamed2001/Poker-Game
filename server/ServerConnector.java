@@ -46,13 +46,13 @@ public class ServerConnector implements Runnable {
                             // Pass the connection and player to the ServerTableManager
                             pool.submit(new ServerTableManager(pc));         
                         } catch(IOException e) {
-                            System.err.println("Error assigning player information: " + e.getMessage() + "in ServerConnector Line 46.");
+                            System.err.println("Error assigning player information: " + e.getMessage() + "in ServerConnector line 46.");
                         } catch(ClassNotFoundException e2) {
-                            System.err.println("Error getting class information: " + e2.getMessage() + "in ServerConnector Line 48.");
+                            System.err.println("Error getting class information: " + e2.getMessage() + "in ServerConnector line 48.");
                         }      
                     }).start();
                 } catch (IOException e) {
-                    System.err.println("Error opening client socket: " + e.getMessage() + " in ServerConnector Line 50.");
+                    System.err.println("Error opening client socket: " + e.getMessage() + " in ServerConnector line 50.");
                 }
             }
         } catch (IOException e) {

@@ -119,10 +119,10 @@ public class ReplicationManager {
                     if(response.getType() != Command.Type.REPLICATION_ACK) {
                         throw new ReplicationExecption("No Ack From Backup...");
                     } else {
-                        System.out.println("Recived replication ACK...");
+                        System.out.println("Received replication ACK...");
                     }
                 } catch (ReplicationExecption e) {
-                    System.err.println("Error sending state to a backup; removing connection...");
+                    System.err.println("Error sending state to a backup, removing connection...");
                     backupConns.remove(i);
                 }
             }
@@ -173,7 +173,7 @@ public class ReplicationManager {
             try {
                 if (replicationListener == null || replicationListener.isClosed()) {
                     replicationListener = new ServerSocket(replicationPort);
-                    System.out.println("Backup " + serverId + " re-waiting for primary replication connection on port " + replicationPort);
+                    System.out.println("Backup " + serverId + " restarted waiting for primary replication connection on port " + replicationPort);
                 }
                 Socket s = replicationListener.accept();
                 primaryConn = new PrimaryConnection(s);
