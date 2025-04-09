@@ -22,37 +22,27 @@ public class ClientMain {
     private static boolean playing = false;
     private static boolean running = false;
     private static LamportClock lamportClock;
+    private static String serverPass;
+    private static boolean rejoining = false;
 
     public static void main(String[] args) {
         lamportClock = new LamportClock();
         running = true;
-        // Init a scanner
         Scanner scanner = new Scanner(System.in);
-        // Display welcome message for the client
         printWelcomeMessage();
-        // Begin connection to server
+        rejoining = handleNewRejoin(scanner);
         if (connectToServer()) {
-            // start monitoring the server connection with a monitor thread
-            // Thread monitorThread = new Thread(() -> monitorConnection());
-            // monitorThread.start();
-            // get a id tag from the server
             id = getIDFromServer();
-            // create the player object
             player = getPlayerInfo(scanner, id);
             printTerminalMessage(String.format("Connected to the game server with name %s and funds %d!",
                     player.get_name(), player.view_funds()));
-            // send the player via a player info command
             sendCommand(Command.Type.PLAYER_INFO, player);
-            // handle creating / selecting a table
             handleGameSelection(scanner);
-            // main game thread
             Thread gameThread = new Thread(() -> playGame(scanner));
             gameThread.start();
-            // wait for threads to be finished to close out the main thread
             try {
                 gameThread.join();
                 running = false;
-                // monitorThread.join();
             } catch (InterruptedException e) {
                 printTerminalMessage(e.getLocalizedMessage());
             }
@@ -71,6 +61,27 @@ public class ClientMain {
         System.out.println("* Welcome to HoldemNet! *");
         System.out.println("*************************");
     }
+
+    /**
+     * Prints rejoining or new 
+    */
+    private static boolean handleNewRejoin(Scanner scanner) {
+        String input;
+        while (true) {
+            System.out.println("Are you a REJOINING player? (yes OR no)");
+            input = scanner.nextLine().toUpperCase();
+            if(input.equals("YES")) {
+                System.out.println("Please enter your rejoin code");
+                serverPass = scanner.nextLine().toUpperCase();
+                return true;
+            } else if(input.equals("NO")) {
+                return false;
+            }
+            System.out.println("Error reading input.");
+        }
+    }
+
+    private static 
 
     /**
      * Prints a given string to the terminal for the client
