@@ -21,9 +21,8 @@ public class ServerConnector implements Runnable {
     public void run() {
         ExecutorService pool = Executors.newCachedThreadPool(); // Thread pool for handling client connections
 
-        try (ServerSocket connector = new ServerSocket()) {
-            InetAddress address = InetAddress.getByName("localhost");
-            connector.bind(new InetSocketAddress(address, 6834));
+        try (ServerSocket connector = new ServerSocket(6834)) {
+
             System.out.println("Server is running and waiting for connections on port 6834...");
 
             while (true) {

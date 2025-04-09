@@ -81,8 +81,6 @@ public class ClientMain {
         }
     }
 
-    private static 
-
     /**
      * Prints a given string to the terminal for the client
      * 

@@ -325,7 +325,7 @@ public class ReplicationManager {
         connectBackupsToNewPrimary();
         heartbeatTimer.cancel();
         // Start accepting client connections as the new primary.
-        new Thread(() -> startClientListener()).start();
+        new Thread(() -> new ServerConnector()).start();
     }
     
     // Connect to all backups.
@@ -342,9 +342,9 @@ public class ReplicationManager {
     }
     
 // Add a flag to ensure the client listener is only started once.
-private volatile boolean clientListenerStarted = false;
+// private volatile boolean clientListenerStarted = false;
 
-private void startClientListener() {
+/*private void startClientListener() {
     // Check if the client listener is already running.
     if (clientListenerStarted) {
         System.out.println("Client listener already running.");
@@ -365,10 +365,10 @@ private void startClientListener() {
         e.printStackTrace();
         System.err.println("Failed to bind to port " + CLIENT_PORT + ". Ensure the old primary is terminated or the port is free.");
     }
-}
+}*/
 
     // Handle a client connection post-failover.
-    private void handleClientConnection(Socket client) {
+    /*private void handleClientConnection(Socket client) {
         System.out.println("Accepted a new client connection post-failover.");
         try {
             PlayerConnection pc = new PlayerConnection(null, client);
@@ -384,5 +384,5 @@ private void startClientListener() {
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
-    }
+    }*/
 }
