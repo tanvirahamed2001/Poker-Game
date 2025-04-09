@@ -27,10 +27,19 @@ public class ClientMain {
 
     public static void main(String[] args) {
         lamportClock = new LamportClock();
-        running = true;
         Scanner scanner = new Scanner(System.in);
         printWelcomeMessage();
         rejoining = handleNewRejoin(scanner);
+        if (!rejoining) {
+            handleNew(scanner);
+        } else {
+            handleRejoin(scanner);
+        }
+        scanner.close();
+        serverConnection.closeConnections();
+    }
+
+    private static void handleNew(Scanner scanner) {
         if (connectToServer()) {
             id = getIDFromServer();
             player = getPlayerInfo(scanner, id);
@@ -42,15 +51,12 @@ public class ClientMain {
             gameThread.start();
             try {
                 gameThread.join();
-                running = false;
             } catch (InterruptedException e) {
                 printTerminalMessage(e.getLocalizedMessage());
             }
         } else {
             System.out.println("Failed to connect to the server. Please try again later.");
         }
-        scanner.close();
-        serverConnection.closeConnections();
     }
 
     /**
@@ -63,18 +69,18 @@ public class ClientMain {
     }
 
     /**
-     * Prints rejoining or new 
-    */
+     * Prints rejoining or new
+     */
     private static boolean handleNewRejoin(Scanner scanner) {
         String input;
         while (true) {
             System.out.println("Are you a Rejoining player? (Yes or No)");
             input = scanner.nextLine().toUpperCase();
-            if(input.equals("YES")) {
+            if (input.equals("YES")) {
                 System.out.println("Please enter your rejoin code");
                 serverPass = scanner.nextLine().toUpperCase();
                 return true;
-            } else if(input.equals("NO")) {
+            } else if (input.equals("NO")) {
                 return false;
             }
             System.out.println("Error reading input, please try again!");
@@ -104,7 +110,7 @@ public class ClientMain {
             lamportClock.receievedEvent(senderTS);
             return id.getID();
         } else {
-            return 0; 
+            return 0;
         }
     }
 
@@ -152,7 +158,7 @@ public class ClientMain {
                 failures++;
             }
         }
-        if(failures == SERVER_IPS.size()) {
+        if (failures == SERVER_IPS.size()) {
             return false;
         }
         return true;

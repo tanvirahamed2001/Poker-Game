@@ -325,7 +325,9 @@ public class ReplicationManager {
         connectBackupsToNewPrimary();
         heartbeatTimer.cancel();
         // Start accepting client connections as the new primary.
-        new Thread(() -> new ServerConnector()).start();
+        ServerConnector connector = new ServerConnector();
+        Thread connectorThread = new Thread(connector);
+        connectorThread.start();
     }
     
     // Connect to all backups.
