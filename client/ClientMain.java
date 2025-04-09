@@ -68,7 +68,7 @@ public class ClientMain {
     private static boolean handleNewRejoin(Scanner scanner) {
         String input;
         while (true) {
-            System.out.println("Are you a REJOINING player? (yes OR no)");
+            System.out.println("Are you a Rejoining player? (Yes or No)");
             input = scanner.nextLine().toUpperCase();
             if(input.equals("YES")) {
                 System.out.println("Please enter your rejoin code");
@@ -77,7 +77,7 @@ public class ClientMain {
             } else if(input.equals("NO")) {
                 return false;
             }
-            System.out.println("Error reading input.");
+            System.out.println("Error reading input, please try again!");
         }
     }
 
@@ -215,7 +215,7 @@ public class ClientMain {
         sendCommand(Command.Type.GAME_CHOICE, gc);
         serverResponse = readCommand();
         printTerminalMessage(((Message) serverResponse.getPayload()).getMsg());
-        printTerminalMessage("Waiting for server table information!");
+        printTerminalMessage("Waiting for server table information...");
         serverResponse = readCommand();
         table_info = new InTable(true, ((TableInfo) serverResponse.getPayload()).getTableID());
         playing = true;
@@ -260,7 +260,7 @@ public class ClientMain {
                 break;
             case CLIENT_UPDATE_PLAYER:
                 player = (Player) response.getPayload();
-                printTerminalMessage("Updaying Player Information");
+                printTerminalMessage("Updating player information...");
                 break;
             case TURN_TOKEN:
                 handleTurn(scanner);
@@ -274,7 +274,7 @@ public class ClientMain {
      * @param scanner for player input
      */
     private static void handleTurn(Scanner scanner) {
-        printTerminalMessage("Your turn! Available commands: CHECK, CALL, BET, FOLD, FUNDS, CARD.");
+        printTerminalMessage("Your turn! Available commands: Check, Call, Bet, Fold, Funds, Card.");
         while (true) {
             try {
                 String input = scanner.nextLine().toUpperCase();
@@ -294,7 +294,7 @@ public class ClientMain {
 
     /**
      * Thread for monitoring the current establishes connection to the server.
-     * Attemps to reconnect on detected failure
+     * Attempts to reconnect on detected failure
      */
     private static void monitorConnection() {
         while (running) {
@@ -335,7 +335,7 @@ public class ClientMain {
             printTerminalMessage("In table before disconnect...attempting to join table " + table_info.getTableID());
             sendCommand(Command.Type.RECONNECT, table_info.getTableID());
         } else {
-            printTerminalMessage("Client was not in a table, getting table list");
+            printTerminalMessage("Client was not in a table, getting table list...");
             handleGameSelection(new Scanner(System.in));
         }
     }
