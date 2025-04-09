@@ -33,7 +33,7 @@ public class ClientMain {
         if (!rejoining) {
             handleNew(scanner);
         } else {
-            handleRejoin(scanner);
+            handleNewRejoin(scanner);
         }
         scanner.close();
         serverConnection.closeConnections();
