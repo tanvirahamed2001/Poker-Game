@@ -29,16 +29,20 @@ public class ClientMain {
         lamportClock = new LamportClock();
         Scanner scanner = new Scanner(System.in);
         printWelcomeMessage();
-        rejoining = handleNewRejoin(scanner);
+        rejoining = handleInitialConnection(scanner);
         if (!rejoining) {
             handleNew(scanner);
         } else {
-            handleNewRejoin(scanner);
+            handleRejoin(scanner);
         }
         scanner.close();
         serverConnection.closeConnections();
     }
 
+    /**
+     * Handles a new player joining the server
+     * @param scanner for player input
+     */
     private static void handleNew(Scanner scanner) {
         if (connectToServer()) {
             id = getIDFromServer();
@@ -60,6 +64,18 @@ public class ClientMain {
     }
 
     /**
+     * Handles a player rejoining the server on a PLAYER CRASH
+     * @param scanner for player input
+     */
+    private static void handleRejoin(Scanner scanner) {
+        if (connectToServer()) {
+
+        }  else {
+            System.out.println("Failed to connect to the server. Please try again later.");
+        }
+    }
+
+    /**
      * Prints welcome message
      */
     private static void printWelcomeMessage() {
@@ -71,7 +87,7 @@ public class ClientMain {
     /**
      * Prints rejoining or new
      */
-    private static boolean handleNewRejoin(Scanner scanner) {
+    private static boolean handleInitialConnection(Scanner scanner) {
         String input;
         while (true) {
             System.out.println("Are you a Rejoining player? (Yes or No)");
