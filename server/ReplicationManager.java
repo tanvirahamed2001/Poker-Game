@@ -42,10 +42,10 @@ public class ReplicationManager {
     
     // List of backup endpoints.
     private final List<Endpoint> backupEndpoints = Arrays.asList(
-        new Endpoint("10.44.124.21", 6836),
-        new Endpoint("10.44.124.21", 6837),
-        new Endpoint("10.44.124.21", 6838),
-        new Endpoint("10.44.124.21", 6839)
+        new Endpoint("localhost", 6836),
+        new Endpoint("localhost", 6837),
+        new Endpoint("localhost", 6838),
+        new Endpoint("localhost", 6839)
     );
     
     // Ports.
