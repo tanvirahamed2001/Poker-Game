@@ -57,7 +57,7 @@ public class ServerConnector implements Runnable {
                                 if (response.getType() == Command.Type.PLAYER_INFO) {
                                     Player player = (Player) response.getPayload();
                                     pc.updatePlayer(player);
-                                    new Thread(new ServerTableManager(pc)).start();
+                                    pool.submit(new ServerTableManager(pc));
                                 }
                             }
 
