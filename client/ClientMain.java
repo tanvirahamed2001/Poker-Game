@@ -1,9 +1,3 @@
-// The main client application for our players
-// Will ask the player for their names and possible amount of funds to begin playing with
-// Might need to make fund authorization a server side thing as well at some point
-// After getting this information, attempts to connect to the servers.
-// These servers will be hosted on the linux systems of the UofC to keep them consistent
-
 import java.io.*;
 import java.net.*;
 import java.util.Scanner;
@@ -13,7 +7,15 @@ import shared.Player;
 import shared.communication_objects.*;
 import shared.Colors;
 
+/**
+ * The main client interface for the players
+ * Will ask the player for their names and possible amount of funds to begin playing with
+ * Might need to make fund authorization a server side thing as well at some point
+ * After getting this information, attempts to connect to the servers.
+ * These servers will be hosted on the linux systems of the UofC to keep them consistent
+ */
 public class ClientMain {
+    // Change SERVER_IPS when needed to do actual testing
     private static final List<String> SERVER_IPS = Arrays.asList("localhost");
     private static final int SERVER_PORT = 6834;
     private static ClientServerConnection serverConnection;
@@ -21,28 +23,28 @@ public class ClientMain {
     private static int id;
     private static InTable table_info = new InTable(false, 0);
     private static boolean playing = false;
-    private static boolean running = false;
     private static LamportClock lamportClock;
-    private static String serverPass;
-    private static boolean rejoining = false;
 
+    /**
+     * Main function. Houses the initial connection logic and steps.
+     * @param args
+     */
     public static void main(String[] args) {
         lamportClock = new LamportClock();
-        running = true;
         Scanner scanner = new Scanner(System.in);
         printWelcomeMessage();
         if (connectToServer()) {
             sendCommand(Command.Type.NEW, null);
             id = getIDFromServer();
             player = getPlayerInfo(scanner, id);
-            printTerminalMessage(String.format("Connected to the game server with name %s and funds %d!", player.get_name(), player.view_funds()));
+            printTerminalMessage(String.format("Connected to the game server with name %s and funds %d!",
+                    player.get_name(), player.view_funds()));
             sendCommand(Command.Type.PLAYER_INFO, player);
             handleGameSelection(scanner);
             Thread gameThread = new Thread(() -> playGame(scanner));
             gameThread.start();
             try {
                 gameThread.join();
-                running = false;
             } catch (InterruptedException e) {
                 printTerminalMessage(e.getLocalizedMessage());
             }
@@ -64,7 +66,6 @@ public class ClientMain {
 
     /**
      * Prints a given string to the terminal for the client
-     * 
      * @param msg
      */
     private static void printTerminalMessage(String msg) {
@@ -85,7 +86,7 @@ public class ClientMain {
             lamportClock.receievedEvent(senderTS);
             return id.getID();
         } else {
-            return 0; 
+            return 0;
         }
     }
 
@@ -133,7 +134,7 @@ public class ClientMain {
                 failures++;
             }
         }
-        if(failures == SERVER_IPS.size()) {
+        if (failures == SERVER_IPS.size()) {
             return false;
         }
         return true;
@@ -176,14 +177,11 @@ public class ClientMain {
     private static void handleGameSelection(Scanner scanner) {
         sendCommand(Command.Type.INITIAL_CONN, null);
         printTerminalMessage("Waiting for available games...");
-        // build the server response command
         Command serverResponse = readCommand();
-        // check if the response is of type GAMES_LIST
         if (serverResponse.getType() == Command.Type.GAMES_LIST) {
             GameList games = (GameList) serverResponse.getPayload();
             printTerminalMessage(games.getGames());
         }
-        // create the game choice from the player
         printTerminalMessage("Enter game number or type 'new': ");
         GameChoice gc;
         if (scanner.hasNextInt()) {
@@ -274,35 +272,12 @@ public class ClientMain {
     }
 
     /**
-     * Thread for monitoring the current establishes connection to the server.
-     * Attempts to reconnect on detected failure
-     */
-    private static void monitorConnection() {
-        while (running) {
-            try {
-                // Sleep a bit before checking the connection status.
-                Thread.sleep(5000);
-                // A simple check: if the socket is closed or not connected, trigger a
-                // reconnect.
-                if (!serverConnection.connected()) {
-                    throw new IOException("Connection lost");
-                }
-            } catch (Exception e) {
-                printTerminalMessage("Attempting to reconnect...");
-                reconnectToServer();
-            }
-        }
-    }
-
-    /**
      * Reconnect to server logic for when the connection is lost.
      * Closes connections to start then calls connectToServer to establish new
      * connection.
      */
     private static void reconnectToServer() {
-        // Close any existing resources.
         serverConnection.closeConnections();
-        // Loop till we manage to get a connection
         while (!connectToServer()) {
             printTerminalMessage("Reconnect attempt failed. Retrying...");
             try {
