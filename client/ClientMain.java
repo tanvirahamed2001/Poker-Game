@@ -47,6 +47,7 @@ public class ClientMain {
         if (connectToServer()) {
             sendCommand(Command.Type.NEW, null);
             id = getIDFromServer();
+            System.out.println("Your ID is: " + id + " Please remember this ID...");
             player = getPlayerInfo(scanner, id);
             printTerminalMessage(String.format("Connected to the game server with name %s and funds %d!",
                     player.get_name(), player.view_funds()));
@@ -64,9 +65,13 @@ public class ClientMain {
      */
     private static void handleRejoin(Scanner scanner) {
         if (connectToServer()) {
+            sendCommand(Command.Type.REJOIN, null);
             System.out.println("Enter your table rejoin code...");
-            String code = scanner.nextLine();
+            int code = Integer.parseInt(scanner.nextLine());
             sendCommand(Command.Type.REJOIN, code);
+            System.out.println("Enter your player ID...");
+            int id = Integer.parseInt(scanner.nextLine());
+            sendCommand(Command.Type.PLAYER_INFO, id);
             startGaming(scanner);
         }  else {
             System.out.println("Failed to connect to the server. Please try again later.");

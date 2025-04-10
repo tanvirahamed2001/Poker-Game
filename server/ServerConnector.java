@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 // Only one instance of this class should run at a time
 public class ServerConnector implements Runnable {
 
-    private static AtomicInteger nextId = new AtomicInteger(1);
+    private static int nextId = 1;
 
     @Override
     public void run() {
@@ -41,7 +41,8 @@ public class ServerConnector implements Runnable {
                             if (response.getType() == Command.Type.NEW) { // A NEW CONNECTION
                                 // Send the player his assigned ID
                                 pc.sendCommand(Command.Type.SERVER_CLIENT_ID,
-                                        new ClientServerId(nextId.getAndIncrement()));
+                                        new ClientServerId(nextId));
+                                nextId++;
                                 // Wait for response to get player information
                                 response = (Command) pc.readCommand();
                                 ServerLamportClock.getInstance().receievedEvent(response.getLamportTS());
@@ -51,11 +52,17 @@ public class ServerConnector implements Runnable {
                                 pool.submit(new ServerTableManager(pc));
                             } else if (response.getType() == Command.Type.REJOIN) { // A CLIENT DISCONNECT
                                 response = (Command) pc.readCommand();
+                                ServerLamportClock.getInstance().receievedEvent(response.getLamportTS());
+                                pool.submit(new ServerTableManager(pc));
                             } else if (response.getType() == Command.Type.RECONNECT) { // A SERVER DISCONNECT
                                 response = (Command) pc.readCommand();
                                 ServerLamportClock.getInstance().receievedEvent(response.getLamportTS());
                                 if (response.getType() == Command.Type.PLAYER_INFO) {
                                     Player player = (Player) response.getPayload();
+                                    if(player.get_client_id() > nextId){
+                                        nextId = player.get_client_id();
+                                        nextId++;
+                                    }
                                     pc.updatePlayer(player);
                                     pool.submit(new ServerTableManager(pc));
                                 }

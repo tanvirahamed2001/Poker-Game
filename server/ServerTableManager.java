@@ -10,6 +10,7 @@ public class ServerTableManager implements Runnable {
     private PlayerConnection connection;
     private static HashMap<Integer, ArrayList<PlayerConnection>> games = ServerMain.getGames();
     private static boolean recon;
+    private static boolean rejoin;
 
     public ServerTableManager(PlayerConnection pc) {
         this.connection = pc;
@@ -19,11 +20,11 @@ public class ServerTableManager implements Runnable {
     public void run() {
         int gameId = getInput();
         if (gameId > 0) {
-            ServerMain.waitforGame(gameId, connection, recon);
+            ServerMain.waitforGame(gameId, connection, recon, rejoin);
         } else if (gameId == 0) {
             gameId = ServerMain.addNewGame();
             connection.sendCommand(Command.Type.TABLE_INFO, new TableInfo(gameId));
-            ServerMain.waitforGame(gameId, connection, recon);
+            ServerMain.waitforGame(gameId, connection, recon, rejoin);
         } else {
             System.err.println("Invalid input or error occurred.");
         }
@@ -57,6 +58,10 @@ public class ServerTableManager implements Runnable {
             } else if (response.getType() == Command.Type.RECONNECT) {
                 int id = (int)response.getPayload();
                 recon = true;
+                return id;
+            } else if (response.getType() == Command.Type.REJOIN) {
+                int id = (int) response.getPayload();
+                rejoin = true;
                 return id;
             }
         } catch (IOException | ClassNotFoundException e) {

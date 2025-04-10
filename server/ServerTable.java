@@ -21,7 +21,6 @@ if player is active: give token -> listen for commands (until timeout)
 after all the turns are done, calculate who has the best hand and give them the pot, players who are out of cash are kicked, those who aren't restart play
 */
 
-
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketException;
@@ -104,9 +103,8 @@ public class ServerTable implements Runnable {
 
     @Override
     public void run() {
-        if(!inprogress) {
-            System.out.println("Game Started!");
-            sendAllPlayers(Command.Type.MESSAGE, new Message("The Game has Begun!"));
+        if (!inprogress) {
+            sendAllPlayers(Command.Type.MESSAGE, new Message("The Game has Begun! Table Code Is " + gameId));
             assignSeats();
             numPlayers = connections.size();
             activePlayers = new boolean[numPlayers];
@@ -118,7 +116,8 @@ public class ServerTable implements Runnable {
             currentBets = new ArrayList<>();
             tablecards = new ArrayList<>();
             inprogress = true;
-            // Initialize players: mark all active, deal two cards each, and set initial bets.
+            // Initialize players: mark all active, deal two cards each, and set initial
+            // bets.
             for (int i = 0; i < numPlayers; i++) {
                 activePlayers[i] = true;
                 players.get(i).new_card(deck.deal_card());
@@ -146,47 +145,52 @@ public class ServerTable implements Runnable {
                 if (activePlayers[currentplayer]) {
                     getPlayerInput();
                 }
-                if((!activePlayers[currentplayer]) && currentplayer == lastActive) {
-                	activeCheck = true;
+                if ((!activePlayers[currentplayer]) && currentplayer == lastActive) {
+                    activeCheck = true;
                 }
                 incrementPlayer();
-                // End betting round when we have looped back to the start and the current player is also the last who bet.
+                // End betting round when we have looped back to the start and the current
+                // player is also the last who bet.
                 if (!bettingStart && currentplayer == lastActive && activeCheck) {
                     roundCompleted = true;
                 }
-                if(bettingStart) {//will skip over the first turn
-                	bettingStart = false;
+                if (bettingStart) {// will skip over the first turn
+                    bettingStart = false;
                 }
             } while (!roundCompleted);
-    
+
             sendAllPlayers(Command.Type.MESSAGE, new Message("Betting round over. Moving to next turn."));
             currentTurn++;
             clearBets();
-    
+
             switch (currentTurn) {
                 case 2: // Flop.
                     tablecards.add(deck.deal_card());
                     tablecards.add(deck.deal_card());
                     tablecards.add(deck.deal_card());
                     replicateGameState();
-                    sendAllPlayers(Command.Type.MESSAGE, new Message("Turn 2: The Flop\nCards: " + tablecards.toString()));
+                    sendAllPlayers(Command.Type.MESSAGE,
+                            new Message("Turn 2: The Flop\nCards: " + tablecards.toString()));
                     break;
                 case 3: // Turn.
                     tablecards.add(deck.deal_card());
                     replicateGameState();
-                    sendAllPlayers(Command.Type.MESSAGE, new Message("Turn 3: The Turn\nCard: " + tablecards.get(3).toString()));
+                    sendAllPlayers(Command.Type.MESSAGE,
+                            new Message("Turn 3: The Turn\nCard: " + tablecards.get(3).toString()));
                     break;
                 case 4: // River.
                     tablecards.add(deck.deal_card());
                     replicateGameState();
-                    sendAllPlayers(Command.Type.MESSAGE, new Message("Turn 4: The River\nCard: " + tablecards.get(4).toString()));
+                    sendAllPlayers(Command.Type.MESSAGE,
+                            new Message("Turn 4: The River\nCard: " + tablecards.get(4).toString()));
                     break;
                 case 5: // Showdown.
                     sendAllPlayers(Command.Type.MESSAGE, new Message("Turn 5: The Showdown!"));
                     ArrayList<Poker_Hands> winners = determine_winner();
                     if (winners.size() == 1) {
                         int winnum = winners.get(0).playernumber;
-                        sendAllPlayers(Command.Type.MESSAGE, new Message("Player " + winnum + " has won the round! They earn $" + pot + "!"));
+                        sendAllPlayers(Command.Type.MESSAGE,
+                                new Message("Player " + winnum + " has won the round! They earn $" + pot + "!"));
                         players.get(winnum).deposit_funds(pot);
                     } else {
                         sendAllPlayers(Command.Type.MESSAGE, new Message("Players tied! Splitting pot."));
@@ -202,7 +206,8 @@ public class ServerTable implements Runnable {
                             activePlayers[i] = true;
                             players.get(i).new_card(deck.deal_card());
                             players.get(i).new_card(deck.deal_card());
-                            sendPlayer(Command.Type.MESSAGE, new Message("New hand: " + players.get(i).show_all_cards()), i);
+                            sendPlayer(Command.Type.MESSAGE,
+                                    new Message("New hand: " + players.get(i).show_all_cards()), i);
                         } else {
                             activePlayers[i] = false;
                         }
@@ -220,7 +225,7 @@ public class ServerTable implements Runnable {
             bettingStart = true;
         }
     }
-    
+
     private void clearBets() {
         currentbet = 0;
         for (int i = 0; i < currentBets.size(); i++) {
@@ -229,7 +234,7 @@ public class ServerTable implements Runnable {
     }
 
     private void assignSeats() {
-        for(int i = 0; i < connections.size(); i++){
+        for (int i = 0; i < connections.size(); i++) {
             connections.get(i).getPlayer().set_seat(i);
             sendPlayer(Command.Type.CLIENT_UPDATE_PLAYER, players.get(i), i);
         }
@@ -240,7 +245,7 @@ public class ServerTable implements Runnable {
         // Map seat numbers to corresponding connections
         Map<Integer, PlayerConnection> seatToConnectionMap = new HashMap<>();
         for (int i = 0; i < connections.size(); i++) {
-            seatToConnectionMap.put((Integer)connections.get(i).getPlayer().get_seat(), connections.get(i));
+            seatToConnectionMap.put((Integer) connections.get(i).getPlayer().get_seat(), connections.get(i));
         }
         // Create a sorted list based on seat numbers
         ArrayList<PlayerConnection> sortedConnections = new ArrayList<>();
@@ -260,46 +265,56 @@ public class ServerTable implements Runnable {
             // Read a command response from the connection
             Command command = (Command) connections.get(currentplayer).readCommand();
 
-            if (command.getType() == Command.Type.TURN_CHOICE)  {
+            if (command.getType() == Command.Type.TURN_CHOICE) {
 
                 TurnChoice playerChoice = (TurnChoice) command.getPayload();
 
-                switch(playerChoice.getChoice()) {
+                switch (playerChoice.getChoice()) {
 
                     case CHECK:
-                        if ((currentBets.get(currentplayer) >= currentbet && players.get(currentplayer).view_funds() != 0)) { //if funds are == 0 then they're all in and they're allowed to continue playing until the end of the round
+                        if ((currentBets.get(currentplayer) >= currentbet
+                                && players.get(currentplayer).view_funds() != 0)) { // if funds are == 0 then they're
+                                                                                    // all in and they're allowed to
+                                                                                    // continue playing until the end of
+                                                                                    // the round
                             sendAllPlayers(Command.Type.MESSAGE, new Message("Player " + currentplayer + " checks."));
-                            if(currentplayer == lastActive) {
-                            	activeCheck = true;
+                            if (currentplayer == lastActive) {
+                                activeCheck = true;
                             }
                         } else {
-                            sendPlayer(Command.Type.MESSAGE, new Message("You must call, fold, or raise!"), currentplayer);
+                            sendPlayer(Command.Type.MESSAGE, new Message("You must call, fold, or raise!"),
+                                    currentplayer);
                             getPlayerInput();
                         }
                         break;
 
                     case FUNDS:
-                        sendPlayer(Command.Type.MESSAGE, new Message("Your funds: $" + players.get(currentplayer).view_funds()), currentplayer);
+                        sendPlayer(Command.Type.MESSAGE,
+                                new Message("Your funds: $" + players.get(currentplayer).view_funds()), currentplayer);
                         getPlayerInput();
                         break;
 
                     case CARD:
-                        sendPlayer(Command.Type.MESSAGE, new Message("Your cards: " + players.get(currentplayer).view_cards() + "\n" +
-                        "Table cards: " + tablecards), currentplayer);
+                        sendPlayer(Command.Type.MESSAGE,
+                                new Message("Your cards: " + players.get(currentplayer).view_cards() + "\n" +
+                                        "Table cards: " + tablecards),
+                                currentplayer);
                         getPlayerInput();
                         break;
 
                     case FOLD:
                         int numac = 0;
-                        for(int i = 0; i < activePlayers.length; i++) {
-                        	if(activePlayers[i]) {
-                        		numac++;
-                        	}
+                        for (int i = 0; i < activePlayers.length; i++) {
+                            if (activePlayers[i]) {
+                                numac++;
+                            }
                         }
-                        if(numac == 1) {//i.e only 1 player left on the table
-                        	sendPlayer(Command.Type.MESSAGE, new Message("You're the last player, please check until the final round!"), currentplayer);
-                        	getPlayerInput();
-                        	break;
+                        if (numac == 1) {// i.e only 1 player left on the table
+                            sendPlayer(Command.Type.MESSAGE,
+                                    new Message("You're the last player, please check until the final round!"),
+                                    currentplayer);
+                            getPlayerInput();
+                            break;
                         }
                         activePlayers[currentplayer] = false;
                         sendAllPlayers(Command.Type.MESSAGE, new Message("Player " + currentplayer + " folds."));
@@ -307,12 +322,15 @@ public class ServerTable implements Runnable {
 
                     case BET:
                         int amount = playerChoice.getBet();
-                        if (amount <= 0 || amount > players.get(currentplayer).view_funds() || amount <= (currentbet-currentBets.get(currentplayer))) {
-                            sendPlayer(Command.Type.MESSAGE, new Message("Invalid bet amount. Try again."), currentplayer);
+                        if (amount <= 0 || amount > players.get(currentplayer).view_funds()
+                                || amount <= (currentbet - currentBets.get(currentplayer))) {
+                            sendPlayer(Command.Type.MESSAGE, new Message("Invalid bet amount. Try again."),
+                                    currentplayer);
                             getPlayerInput();
                         } else {
                             players.get(currentplayer).deposit_funds(-amount);
-                            sendAllPlayers(Command.Type.MESSAGE, new Message("Player " + currentplayer + " bets $" + amount));
+                            sendAllPlayers(Command.Type.MESSAGE,
+                                    new Message("Player " + currentplayer + " bets $" + amount));
                             currentbet = amount;
                             pot += amount;
                             currentBets.set(currentplayer, amount);
@@ -322,7 +340,8 @@ public class ServerTable implements Runnable {
 
                     case CALL:
                         if (currentbet > players.get(currentplayer).view_funds()) {
-                            sendPlayer(Command.Type.MESSAGE, new Message("Insufficient funds to call. You must fold."), currentplayer);
+                            sendPlayer(Command.Type.MESSAGE, new Message("Insufficient funds to call. You must fold."),
+                                    currentplayer);
                             activePlayers[currentplayer] = false;
                         } else {
                             players.get(currentplayer).deposit_funds(-currentbet);
@@ -333,51 +352,54 @@ public class ServerTable implements Runnable {
                         break;
                 }
             }
-        } catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
-    
+
     private void incrementPlayer() {
         currentplayer = (currentplayer + 1) % connections.size();
     }
-    
+
     private void sendAllPlayers(Command.Type type, Object obj) {
         for (PlayerConnection pc : connections) {
-                pc.sendCommand(type, obj);
+            pc.sendCommand(type, obj);
         }
     }
-    
+
     private void sendPlayer(Command.Type type, Object obj, int index) {
         connections.get(index).sendCommand(type, obj);
     }
-    
+
     private void replicateGameState() {
         System.out.println("Beginning Game " + gameId + " replication!");
         ArrayList<Card> tablecardsSnapshot = new ArrayList<>(tablecards);
-        GameState currentState = new GameState(gameId, pot, currentTurn, currentplayer, lastActive, numPlayers, currentbet, ServerLamportClock.getInstance().sendEvent(), inprogress, activePlayers, roundCompleted, players, currentBets, tablecardsSnapshot, deck);
+        GameState currentState = new GameState(gameId, pot, currentTurn, currentplayer, lastActive, numPlayers,
+                currentbet, ServerLamportClock.getInstance().sendEvent(), inprogress, activePlayers, roundCompleted,
+                players, currentBets, tablecardsSnapshot, deck);
         ReplicationManager.getInstance(true).sendStateUpdate(currentState);
         System.out.println("Finished Game " + gameId + " replication!");
         replicatePlayer();
     }
 
     private void replicatePlayer() {
-        for(PlayerConnection pc : connections) {
+        for (PlayerConnection pc : connections) {
             pc.sendCommand(Command.Type.CLIENT_UPDATE_PLAYER, pc.getPlayer());
         }
     }
-    
-    // The determine_winner(), check_other(), check_flush(), and check_straight methods remain unchanged.
+
+    // The determine_winner(), check_other(), check_flush(), and check_straight
+    // methods remain unchanged.
     private ArrayList<Poker_Hands> determine_winner() {
         // ... existing logic remains unchanged ...
         ArrayList<Poker_Hands> wins = new ArrayList<>();
         ArrayList<ArrayList<Card>> hands = new ArrayList<>();
         ArrayList<Integer> player = new ArrayList<>();
         for (int i = 0; i < players.size(); i++) {
-        	if(activePlayers[i]) {
-        		hands.add(players.get(i).show_all_cards());
-        		player.add(i);
-        	}
+            if (activePlayers[i]) {
+                hands.add(players.get(i).show_all_cards());
+                player.add(i);
+            }
         }
         ArrayList<Card> combined = new ArrayList<>();
         for (int j = 0; j < hands.size(); j++) {
@@ -389,8 +411,8 @@ public class ServerTable implements Runnable {
             ArrayList<Card> flush = check_flush(combined);
             if (!flush.isEmpty()) {
                 if (!check_straight(flush).isEmpty()) {
-                	flush.sort(Comparator.comparing(Card::get_rank));
-                    wins.add(new Poker_Hands(winners.STRAIGHTFLUSH, flush.get(flush.size()-1), player.get(j)));
+                    flush.sort(Comparator.comparing(Card::get_rank));
+                    wins.add(new Poker_Hands(winners.STRAIGHTFLUSH, flush.get(flush.size() - 1), player.get(j)));
                     combined.clear();
                     continue;
                 }
@@ -400,14 +422,14 @@ public class ServerTable implements Runnable {
                 combined.clear();
                 continue;
             } else {
-            	if (!flush.isEmpty()) {
-            		flush.sort(Comparator.comparing(Card::get_rank));
-                    wins.set(j, new Poker_Hands(winners.FLUSH, flush.get(flush.size()-1), player.get(j)));
+                if (!flush.isEmpty()) {
+                    flush.sort(Comparator.comparing(Card::get_rank));
+                    wins.set(j, new Poker_Hands(winners.FLUSH, flush.get(flush.size() - 1), player.get(j)));
                     combined.clear();
                     continue;
                 }
-            	ArrayList<Card> straight = check_straight(combined);
-            	if (!straight.isEmpty()) {
+                ArrayList<Card> straight = check_straight(combined);
+                if (!straight.isEmpty()) {
                     wins.set(j, new Poker_Hands(winners.STRAIGHT, straight.get(0), player.get(j)));
                     combined.clear();
                     continue;
@@ -415,14 +437,14 @@ public class ServerTable implements Runnable {
                     combined.clear();
                     continue;
                 }
-                 
+
             }
         }
         ArrayList<Poker_Hands> firstcheck = new ArrayList<>();
         wins.sort(Comparator.comparing(Poker_Hands::getResult));
-        firstcheck.add(wins.get(wins.size()-1));
-        wins.remove(wins.size()-1);
-        for (int i = wins.size()-1; i > -1; i--) {
+        firstcheck.add(wins.get(wins.size() - 1));
+        wins.remove(wins.size() - 1);
+        for (int i = wins.size() - 1; i > -1; i--) {
             if (wins.get(i).result == firstcheck.get(0).result) {
                 firstcheck.add(wins.get(i));
             } else {
@@ -434,9 +456,9 @@ public class ServerTable implements Runnable {
         } else {
             firstcheck.sort(Comparator.comparing(Poker_Hands::gethighrank));
             ArrayList<Poker_Hands> secondcheck = new ArrayList<>();
-            secondcheck.add(firstcheck.get(firstcheck.size()-1));
-            firstcheck.remove(firstcheck.size()-1);
-            for (int i = firstcheck.size()-1; i > -1; i--) {
+            secondcheck.add(firstcheck.get(firstcheck.size() - 1));
+            firstcheck.remove(firstcheck.size() - 1);
+            for (int i = firstcheck.size() - 1; i > -1; i--) {
                 if (firstcheck.get(i).highcard == secondcheck.get(0).highcard) {
                     secondcheck.add(firstcheck.get(i));
                 } else {
@@ -448,9 +470,9 @@ public class ServerTable implements Runnable {
             } else {
                 secondcheck.sort(Comparator.comparing(Poker_Hands::getsecondrank));
                 ArrayList<Poker_Hands> thirdcheck = new ArrayList<>();
-                thirdcheck.add(secondcheck.get(secondcheck.size()-1));
-                secondcheck.remove(secondcheck.size()-1);
-                for (int i = secondcheck.size()-1; i > -1; i--) {
+                thirdcheck.add(secondcheck.get(secondcheck.size() - 1));
+                secondcheck.remove(secondcheck.size() - 1);
+                for (int i = secondcheck.size() - 1; i > -1; i--) {
                     if (secondcheck.get(i).secondhigh == thirdcheck.get(0).secondhigh) {
                         thirdcheck.add(secondcheck.get(i));
                     } else {
@@ -461,51 +483,55 @@ public class ServerTable implements Runnable {
             }
         }
     }
-    
+
     private Poker_Hands check_other(ArrayList<Card> combined, int j, ArrayList<Integer> player) {
         ArrayList<Card> pairOne = new ArrayList<>();
         ArrayList<Card> pairTwo = new ArrayList<>();
         ArrayList<Card> pairThree = new ArrayList<>();
         ArrayList<Card> compair = new ArrayList<>();
-        
+
         // Loop through the combined list to extract pairs.
         // We assume combined is sorted by rank.
         for (int i = 0; i < combined.size() - 1; i++) {
-            if (combined.get(i).get_rank().equals(combined.get(i+1).get_rank())) {
+            if (combined.get(i).get_rank().equals(combined.get(i + 1).get_rank())) {
                 if (pairOne.isEmpty() || pairOne.get(0).get_rank().equals(combined.get(i).get_rank())) {
                     pairOne.add(combined.get(i));
-                    pairOne.add(combined.get(i+1));
+                    pairOne.add(combined.get(i + 1));
                     i++; // skip the next element since it's part of the pair
                 } else if (pairTwo.isEmpty() || pairTwo.get(0).get_rank().equals(combined.get(i).get_rank())) {
                     pairTwo.add(combined.get(i));
-                    pairTwo.add(combined.get(i+1));
+                    pairTwo.add(combined.get(i + 1));
                     i++;
                 } else if (pairThree.isEmpty() || pairThree.get(0).get_rank().equals(combined.get(i).get_rank())) {
                     pairThree.add(combined.get(i));
-                    pairThree.add(combined.get(i+1));
+                    pairThree.add(combined.get(i + 1));
                     i++;
                 }
             }
         }
-        
+
         // If no pair is found, return a HIGH hand using the two highest cards.
         if (pairOne.isEmpty()) {
             int size = combined.size();
-            return new Poker_Hands(Poker_Hands.winners.HIGH, combined.get(size - 1), combined.get(size - 2), player.get(j));
+            return new Poker_Hands(Poker_Hands.winners.HIGH, combined.get(size - 1), combined.get(size - 2),
+                    player.get(j));
         }
-        
+
         // Check for three-of-a-kind (or potential full house)
         int maxPairSize = Math.max(Math.max(pairOne.size(), pairTwo.size()), pairThree.size());
         if (maxPairSize == 3) {
             // Only one pair exists? Then it is a three-of-a-kind.
             if (pairTwo.isEmpty()) {
-                return new Poker_Hands(Poker_Hands.winners.THREEKIND, pairOne.get(0), combined.get(combined.size() - 1), player.get(j));
+                return new Poker_Hands(Poker_Hands.winners.THREEKIND, pairOne.get(0), combined.get(combined.size() - 1),
+                        player.get(j));
             } else if (pairThree.isEmpty()) {
                 // Full house: one three-of-a-kind plus a pair.
                 if (pairOne.size() == 3) {
-                    return new Poker_Hands(Poker_Hands.winners.FULLHOUSE, pairOne.get(0), pairTwo.get(0), player.get(j));
+                    return new Poker_Hands(Poker_Hands.winners.FULLHOUSE, pairOne.get(0), pairTwo.get(0),
+                            player.get(j));
                 } else {
-                    return new Poker_Hands(Poker_Hands.winners.FULLHOUSE, pairTwo.get(0), pairOne.get(0), player.get(j));
+                    return new Poker_Hands(Poker_Hands.winners.FULLHOUSE, pairTwo.get(0), pairOne.get(0),
+                            player.get(j));
                 }
             } else {
                 // If three pairs exist, collect one card from each for tie-breaking.
@@ -520,10 +546,11 @@ public class ServerTable implements Runnable {
                 }
             }
         }
-        
+
         // If only one pair exists, return ONEPAIR.
         if (pairTwo.isEmpty()) {
-            return new Poker_Hands(Poker_Hands.winners.ONEPAIR, pairOne.get(0), combined.get(combined.size() - 1), player.get(j));
+            return new Poker_Hands(Poker_Hands.winners.ONEPAIR, pairOne.get(0), combined.get(combined.size() - 1),
+                    player.get(j));
         } else if (pairThree.isEmpty()) {
             compair.add(pairOne.get(0));
             compair.add(pairTwo.get(0));
@@ -542,7 +569,7 @@ public class ServerTable implements Runnable {
             }
         }
     }
-    
+
     private ArrayList<Card> check_flush(ArrayList<Card> hand) {
         ArrayList<Card> cards = new ArrayList<>();
         for (int i = 0; i < hand.size(); i++) {
@@ -566,35 +593,46 @@ public class ServerTable implements Runnable {
         }
         return flusher;
     }
-    
+
     private ArrayList<Card> check_straight(ArrayList<Card> combined) {
         ArrayList<Card> straighter = new ArrayList<>();
         combined.sort(Comparator.comparing(Card::get_rank));
-        Collections.reverse(combined); //high to low, so as to get the best straight possible
+        Collections.reverse(combined); // high to low, so as to get the best straight possible
         int consecutive = 0;
-        for(int i = 0; i < combined.size()-1; i++) {
-        	if(combined.get(i).get_rank().ordinal()-1 == combined.get(i+1).get_rank().ordinal()) {
-        		if(consecutive == 0) {
-        			consecutive += 2;
-        			straighter.add(combined.get(i));
-        			straighter.add(combined.get(i+1));
-        		}
-        		else {
-        			consecutive++;
-        			straighter.add(combined.get(i+1));
-        			}
-        		if(consecutive == 5) {return straighter;}
-        	}
-        	else {
-        		straighter.clear();
-        		consecutive = 0;
-        		if(i == 2) {
-        			return straighter;
-        		}
-        	}
+        for (int i = 0; i < combined.size() - 1; i++) {
+            if (combined.get(i).get_rank().ordinal() - 1 == combined.get(i + 1).get_rank().ordinal()) {
+                if (consecutive == 0) {
+                    consecutive += 2;
+                    straighter.add(combined.get(i));
+                    straighter.add(combined.get(i + 1));
+                } else {
+                    consecutive++;
+                    straighter.add(combined.get(i + 1));
+                }
+                if (consecutive == 5) {
+                    return straighter;
+                }
+            } else {
+                straighter.clear();
+                consecutive = 0;
+                if (i == 2) {
+                    return straighter;
+                }
+            }
         }
-        //unreachable?
+        // unreachable?
         straighter.clear();
         return straighter;
+    }
+
+    public void rejoinPlayer(int playerID, PlayerConnection conn) {
+        for (PlayerConnection p : connections) {
+            if (p.getSocket() == null) {
+                if (p.getPlayer().get_client_id() == playerID) {
+                    conn.updatePlayer(p.getPlayer());
+                    p = conn;
+                }
+            }
+        }
     }
 }

@@ -17,51 +17,66 @@ public class ServerMain {
     public static HashMap<Integer, ArrayList<PlayerConnection>> getGames() {
         return matching_games;
     }
-    
+
     // NEW: Update game list from replicated game states.
     public static synchronized void updateGames(Map<Integer, GameState> replicatedGames) {
         for (Integer gameId : replicatedGames.keySet()) {
             if (!matching_games.containsKey(gameId)) {
                 matching_games.put(gameId, new ArrayList<>());
                 System.out.println("Restored Game " + gameId + " from replication state.");
-                
             }
         }
     }
-    
-    public static int waitforGame(int key, PlayerConnection connection, boolean reconnect) {
+
+    public static int waitforGame(int key, PlayerConnection connection, boolean reconnect, boolean rejoin) {
         ArrayList<PlayerConnection> gameConnections = matching_games.get(key);
-        if (gameConnections == null) {
-            gameConnections = new ArrayList<>();
-            matching_games.put(key, gameConnections);
-        }
-        if (gameConnections.size() < maxplayers) {
-            gameConnections.add(connection);
-            System.out.println("A player has been added to Game " + key + "! Currently " + gameConnections.size() + "/" + maxplayers);
-            if (gameConnections.size() == maxplayers) { 
-                if(reconnect) {
-                    ServerTable oldTable = ServerTable.getInstance(key);
-                    oldTable.reconnectPlayers(gameConnections);
-                    Message msg = new Message("Rejoined table " + oldTable.getTableID()+ " waiting for game start...");
-                    connection.sendCommand(Command.Type.MESSAGE, msg);
-                    gamepool.submit(oldTable);
-                } else {
-                    gamepool.submit(new ServerTable(key, gameConnections));
-                }
+        if (rejoin) {
+            try {
+                System.out.println("Player attemtping to rejoin the table " + key);
+                ServerTable oldTable = ServerTable.getInstance(key);
+                Command response = (Command) connection.readCommand();
+                int playerID = (int) response.getPayload();
+                oldTable.rejoinPlayer(playerID, connection);
+                return 0;
+            } catch (Exception e) {
+                e.printStackTrace();
+                return -1;
             }
-            return 0;
         } else {
-            return -1;
+            if (gameConnections == null) {
+                gameConnections = new ArrayList<>();
+                matching_games.put(key, gameConnections);
+            }
+            if (gameConnections.size() < maxplayers) {
+                gameConnections.add(connection);
+                System.out.println("A player has been added to Game " + key + "! Currently " + gameConnections.size()
+                        + "/" + maxplayers);
+                if (gameConnections.size() == maxplayers) {
+                    if (reconnect) {
+                        ServerTable oldTable = ServerTable.getInstance(key);
+                        oldTable.reconnectPlayers(gameConnections);
+                        Message msg = new Message(
+                                "Rejoined table " + oldTable.getTableID() + " waiting for game start...");
+                        connection.sendCommand(Command.Type.MESSAGE, msg);
+                        gamepool.submit(oldTable);
+                    } else {
+                        gamepool.submit(new ServerTable(key, gameConnections));
+                    }
+                }
+                return 0;
+            } else {
+                return -1;
+            }
         }
     }
-    
+
     public static synchronized int addNewGame() {
         matching_games.put(id, new ArrayList<>());
         System.out.println("A player has created Game " + id + "!");
         id++;
         return id - 1;
     }
-    
+
     public static void main(String[] args) {
         boolean isPrimary = true;
         if (args.length > 0 && args[0].equalsIgnoreCase("backup")) {

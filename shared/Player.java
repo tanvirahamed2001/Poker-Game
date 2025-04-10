@@ -25,6 +25,10 @@ public class Player implements Serializable {
         this.client_id = id;
     }
 
+    public int get_client_id() {
+        return this.client_id;
+    }
+
     /**
      * Gets the player's name.
      * @return The name of the player.
