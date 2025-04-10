@@ -43,15 +43,22 @@ public class ServerConnector implements Runnable {
                                 pc.sendCommand(Command.Type.SERVER_CLIENT_ID,
                                         new ClientServerId(nextId.getAndIncrement()));
                                 // Wait for response to get player information
-                                Command cmd = (Command) pc.readCommand();
-                                Player player = (Player) cmd.getPayload();
+                                response = (Command) pc.readCommand();
+                                ServerLamportClock.getInstance().receievedEvent(response.getLamportTS());
+                                Player player = (Player) response.getPayload();
                                 pc.updatePlayer(player);
                                 // Pass the connection and player to the ServerTableManager
                                 pool.submit(new ServerTableManager(pc));
                             } else if (response.getType() == Command.Type.REJOIN) { // A CLIENT DISCONNECT
                                 response = (Command) pc.readCommand();
                             } else if (response.getType() == Command.Type.RECONNECT) { // A SERVER DISCONNECT
-
+                                response = (Command) pc.readCommand();
+                                ServerLamportClock.getInstance().receievedEvent(response.getLamportTS());
+                                if (response.getType() == Command.Type.PLAYER_INFO) {
+                                    Player player = (Player) response.getPayload();
+                                    pc.updatePlayer(player);
+                                    new Thread(new ServerTableManager(pc)).start();
+                                }
                             }
 
                         } catch (IOException e) {

@@ -360,6 +360,7 @@ public class ClientMain {
             }
         }
         printTerminalMessage("Reconnected successfully!");
+        sendCommand(Command.Type.RECONNECT, null);
         sendCommand(Command.Type.PLAYER_INFO, player);
         if (table_info.getIn()) {
             printTerminalMessage("In table before disconnect...attempting to join table " + table_info.getTableID());
