@@ -57,9 +57,9 @@ public class ClientMain {
      * Prints welcome message
      */
     private static void printWelcomeMessage() {
-        System.out.println(Colors.RED + "*************************" + Colors.RESET);
-        System.out.println(Colors.RED + "* Welcome to HoldemNet! *" + Colors.RESET);
-        System.out.println(Colors.RED + "*************************" + Colors.RESET);
+        System.out.println(Colors.PURPLE + "*************************" + Colors.RESET);
+        System.out.println(Colors.PURPLE + "* Welcome to HoldemNet! *" + Colors.RESET);
+        System.out.println(Colors.PURPLE + "*************************" + Colors.RESET);
     }
 
     /**
