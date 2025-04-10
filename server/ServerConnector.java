@@ -34,25 +34,37 @@ public class ServerConnector implements Runnable {
                         try {
                             // initially setup the player connection object with the socket
                             PlayerConnection pc = new PlayerConnection(null, socket);
-    
-                            // Send the player his assigned ID
-                            pc.sendCommand(Command.Type.SERVER_CLIENT_ID, new ClientServerId(nextId.getAndIncrement()));
-    
-                            // Wait for response to get player information
-                            Command cmd = (Command) pc.readCommand();
-                            Player player = (Player) cmd.getPayload();
-                            pc.updatePlayer(player);
-    
-                            // Pass the connection and player to the ServerTableManager
-                            pool.submit(new ServerTableManager(pc));         
-                        } catch(IOException e) {
-                            System.err.println("Error assigning player information: " + e.getMessage() + "in ServerConnector Line 46.");
-                        } catch(ClassNotFoundException e2) {
-                            System.err.println("Error getting class information: " + e2.getMessage() + "in ServerConnector Line 48.");
-                        }      
+
+                            // We wait for the client to send the connection type - NEW, REJOIN OR RECONNECT
+                            Command response = (Command) pc.readCommand();
+
+                            if (response.getType() == Command.Type.NEW) { // A NEW CONNECTION
+                                // Send the player his assigned ID
+                                pc.sendCommand(Command.Type.SERVER_CLIENT_ID,
+                                        new ClientServerId(nextId.getAndIncrement()));
+                                // Wait for response to get player information
+                                Command cmd = (Command) pc.readCommand();
+                                Player player = (Player) cmd.getPayload();
+                                pc.updatePlayer(player);
+                                // Pass the connection and player to the ServerTableManager
+                                pool.submit(new ServerTableManager(pc));
+                            } else if (response.getType() == Command.Type.REJOIN) { // A CLIENT DISCONNECT
+                                response = (Command) pc.readCommand();
+                            } else if (response.getType() == Command.Type.RECONNECT) { // A SERVER DISCONNECT
+
+                            }
+
+                        } catch (IOException e) {
+                            System.err.println("Error assigning player information: " + e.getMessage()
+                                    + "in ServerConnector Line 46.");
+                        } catch (ClassNotFoundException e2) {
+                            System.err.println("Error getting class information: " + e2.getMessage()
+                                    + "in ServerConnector Line 48.");
+                        }
                     }).start();
                 } catch (IOException e) {
-                    System.err.println("Error opening client socket: " + e.getMessage() + " in ServerConnector Line 50.");
+                    System.err
+                            .println("Error opening client socket: " + e.getMessage() + " in ServerConnector Line 50.");
                 }
             }
         } catch (IOException e) {

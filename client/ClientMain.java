@@ -45,19 +45,14 @@ public class ClientMain {
      */
     private static void handleNew(Scanner scanner) {
         if (connectToServer()) {
+            sendCommand(Command.Type.NEW, null);
             id = getIDFromServer();
             player = getPlayerInfo(scanner, id);
             printTerminalMessage(String.format("Connected to the game server with name %s and funds %d!",
                     player.get_name(), player.view_funds()));
             sendCommand(Command.Type.PLAYER_INFO, player);
             handleGameSelection(scanner);
-            Thread gameThread = new Thread(() -> playGame(scanner));
-            gameThread.start();
-            try {
-                gameThread.join();
-            } catch (InterruptedException e) {
-                printTerminalMessage(e.getLocalizedMessage());
-            }
+            startGaming(scanner);
         } else {
             System.out.println("Failed to connect to the server. Please try again later.");
         }
@@ -69,9 +64,22 @@ public class ClientMain {
      */
     private static void handleRejoin(Scanner scanner) {
         if (connectToServer()) {
-
+            System.out.println("Enter your table rejoin code...");
+            String code = scanner.nextLine();
+            sendCommand(Command.Type.REJOIN, code);
+            startGaming(scanner);
         }  else {
             System.out.println("Failed to connect to the server. Please try again later.");
+        }
+    }
+
+    private static void startGaming(Scanner scanner) {
+        Thread gameThread = new Thread(() -> playGame(scanner));
+        gameThread.start();
+        try {
+            gameThread.join();
+        } catch (InterruptedException e) {
+            printTerminalMessage(e.getLocalizedMessage());
         }
     }
 
