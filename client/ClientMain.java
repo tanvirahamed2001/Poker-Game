@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.List;
 import shared.Player;
 import shared.communication_objects.*;
+import shared.Colors;
 
 public class ClientMain {
     private static final List<String> SERVER_IPS = Arrays.asList("localhost");
@@ -34,8 +35,7 @@ public class ClientMain {
             sendCommand(Command.Type.NEW, null);
             id = getIDFromServer();
             player = getPlayerInfo(scanner, id);
-            printTerminalMessage(String.format("Connected to the game server with name %s and funds %d!",
-                    player.get_name(), player.view_funds()));
+            printTerminalMessage(String.format("Connected to the game server with name %s and funds %d!", player.get_name(), player.view_funds()));
             sendCommand(Command.Type.PLAYER_INFO, player);
             handleGameSelection(scanner);
             Thread gameThread = new Thread(() -> playGame(scanner));
@@ -57,9 +57,9 @@ public class ClientMain {
      * Prints welcome message
      */
     private static void printWelcomeMessage() {
-        System.out.println("*************************");
-        System.out.println("* Welcome to HoldemNet! *");
-        System.out.println("*************************");
+        System.out.println(Colors.RED + "*************************" + Colors.RESET);
+        System.out.println(Colors.RED + "* Welcome to HoldemNet! *" + Colors.RESET);
+        System.out.println(Colors.RED + "*************************" + Colors.RESET);
     }
 
     /**
