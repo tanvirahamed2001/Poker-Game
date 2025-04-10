@@ -21,7 +21,7 @@ public class PlayerConnection {
         // Then create ObjectInputStream.
         this.in = new ObjectInputStream(socket.getInputStream());
     }
-    
+
     public Player getPlayer() {
         return this.player;
     }
@@ -29,19 +29,19 @@ public class PlayerConnection {
     public void updatePlayer(Player player) {
         this.player = player;
     }
-    
+
     public Socket getSocket() {
         return socket;
     }
-    
+
     public ObjectInputStream getReader() {
         return in;
     }
-    
+
     public ObjectOutputStream getWriter() {
         return out;
     }
-    
+
     // Now send a message as an object (e.g., a String or a Command object).
     public void sendCommand(Command.Type type, Object obj) {
         int ts = ServerLamportClock.getInstance().sendEvent();
@@ -50,23 +50,27 @@ public class PlayerConnection {
         try {
             out.writeObject(cmd);
             out.flush();
-        } catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
-    
+
     // Read a message and return it as an Object.
-    public Object readCommand() throws IOException, ClassNotFoundException {
-        Object obj = in.readObject();
-        if(obj == null) {
+    public Object readCommand() {
+        try {
+            Object obj = in.readObject();
+            if (obj == null) {
+                return null;
+            }
+            Command cmd = (Command) obj;
+            int senderTS = cmd.getLamportTS();
+            ServerLamportClock.getInstance().receievedEvent(senderTS);
+            return obj;
+        } catch (Exception e) {
             return null;
         }
-        Command cmd = (Command) obj;
-        int senderTS = cmd.getLamportTS();
-        ServerLamportClock.getInstance().receievedEvent(senderTS);
-        return obj;
     }
-    
+
     public void close() throws IOException {
         socket.close();
     }

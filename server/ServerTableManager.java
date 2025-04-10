@@ -59,7 +59,7 @@ public class ServerTableManager implements Runnable {
                 recon = true;
                 return id;
             }
-        } catch (IOException | ClassNotFoundException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return -1;

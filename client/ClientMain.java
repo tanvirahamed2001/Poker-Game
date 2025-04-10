@@ -30,8 +30,8 @@ public class ClientMain {
         running = true;
         Scanner scanner = new Scanner(System.in);
         printWelcomeMessage();
-        rejoining = handleNewRejoin(scanner);
         if (connectToServer()) {
+            sendCommand(Command.Type.NEW, null);
             id = getIDFromServer();
             player = getPlayerInfo(scanner, id);
             printTerminalMessage(String.format("Connected to the game server with name %s and funds %d!",
@@ -60,25 +60,6 @@ public class ClientMain {
         System.out.println("*************************");
         System.out.println("* Welcome to HoldemNet! *");
         System.out.println("*************************");
-    }
-
-    /**
-     * Prints rejoining or new 
-    */
-    private static boolean handleNewRejoin(Scanner scanner) {
-        String input;
-        while (true) {
-            System.out.println("Are you a Rejoining player? (Yes or No)");
-            input = scanner.nextLine().toUpperCase();
-            if(input.equals("YES")) {
-                System.out.println("Please enter your rejoin code");
-                serverPass = scanner.nextLine().toUpperCase();
-                return true;
-            } else if(input.equals("NO")) {
-                return false;
-            }
-            System.out.println("Error reading input, please try again!");
-        }
     }
 
     /**
@@ -330,6 +311,7 @@ public class ClientMain {
             }
         }
         printTerminalMessage("Reconnected successfully!");
+        sendCommand(Command.Type.RECONNECT, null);
         sendCommand(Command.Type.PLAYER_INFO, player);
         if (table_info.getIn()) {
             printTerminalMessage("In table before disconnect...attempting to join table " + table_info.getTableID());
