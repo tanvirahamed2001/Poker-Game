@@ -27,6 +27,7 @@ public class ClientMain {
 
     /**
      * Main function. Houses the initial connection logic and steps.
+     * 
      * @param args
      */
     public static void main(String[] args) {
@@ -66,6 +67,7 @@ public class ClientMain {
 
     /**
      * Prints a given string to the terminal for the client
+     * 
      * @param msg
      */
     private static void printTerminalMessage(String msg) {
@@ -73,8 +75,7 @@ public class ClientMain {
     }
 
     /**
-     * Waits to get an ID assignment from the server, should have after connection
-     * is established
+     * Waits to get an ID assignment from the server, should have after connection is established
      * 
      * @return int ID
      */
@@ -93,7 +94,7 @@ public class ClientMain {
     /**
      * Gets the current players information
      * 
-     * @param scanner
+     * @param scanner for player input
      * @return Player Object
      */
     private static Player getPlayerInfo(Scanner scanner, int id) {

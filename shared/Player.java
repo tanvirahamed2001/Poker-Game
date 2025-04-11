@@ -4,7 +4,9 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import shared.card_based.Card;
 
-// Player class no longer contains a Socket, making it serializable for network replication.
+/**
+ * Player utility class
+ */
 public class Player implements Serializable {
 
     private String name;
@@ -33,10 +35,18 @@ public class Player implements Serializable {
         return this.name;
     }
 
+    /**
+     * Sets the players seating arrangement at the table
+     * @param i the seating number
+     */
     public void set_seat(int i) {
         this.seat = i;
     }
 
+    /**
+     * Get the seating number for the player
+     * @return the integer seat number
+     */
     public int get_seat() {
         return this.seat;
     }
@@ -105,6 +115,9 @@ public class Player implements Serializable {
         return 0; // Indicates an invalid bet
     }
 
+    /**
+     * Override of toString for printing Player Name and Funds
+     */
     @Override
     public String toString() {
         return "Player Name: " + this.name + " Funds: " + this.funds; 

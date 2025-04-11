@@ -3,10 +3,16 @@ package shared.card_based;
 import java.io.Serializable;
 import java.util.*;
 
+/**
+* Deck object. Houses everything needed to build a deck of cards
+*/
 public class Deck implements Serializable {
 
     private List<Card> cards;
 
+    /**
+     * Deck constructor
+     */
     public Deck() {
         cards = new ArrayList<Card>();
 
@@ -19,10 +25,17 @@ public class Deck implements Serializable {
         shuffle();
     }
 
+    /**
+     * Function for shuffling the built in list of cards
+     */
     public void shuffle() {
         Collections.shuffle(cards);
     }
 
+    /**
+     * Deals out a single card from the deck
+     * @return a single card
+     */
     public Card deal_card() {
         if(cards.isEmpty()) {
             Deck reshuffled = new Deck();
