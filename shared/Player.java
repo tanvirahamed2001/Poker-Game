@@ -29,6 +29,14 @@ public class Player implements Serializable {
     }
 
     /**
+     * Get the client id for the player
+     * @return int client id
+     */
+    public int getClientId() {
+        return client_id;
+    }
+
+    /**
      * Gets the player's name.
      * 
      * @return The name of the player.

@@ -1,20 +1,28 @@
-
-import java.io.*;
-import java.net.Socket;
 import java.util.HashMap;
 import java.util.ArrayList;
-import shared.Player;
 import shared.communication_objects.*;
 
+/**
+ * Manages individual player choices when it comes to creating, or joining poker
+ * tables
+ */
 public class ServerTableManager implements Runnable {
     private PlayerConnection connection;
     private static HashMap<Integer, ArrayList<PlayerConnection>> games = ServerMain.getGames();
     private static boolean recon;
 
+    /**
+     * Constructor for table manager
+     * 
+     * @param pc PlayerConnection
+     */
     public ServerTableManager(PlayerConnection pc) {
         this.connection = pc;
     }
-    
+
+    /**
+     * Thread for running the table manager
+     */
     @Override
     public void run() {
         int gameId = getInput();
@@ -28,23 +36,32 @@ public class ServerTableManager implements Runnable {
             System.err.println("Invalid input or error occurred.");
         }
     }
-    
+
+    /**
+     * Gets the players choice when it comes to a table.
+     * New -> Puts the player into a new table with an new id
+     * Join -> Joins a table with a given tablei d
+     * Reconnect -> Happens on Primary Server Death, allows the player to reconnect
+     * to the old table
+     * 
+     * @return int table choice
+     */
     private int getInput() {
         try {
             recon = false;
-            Command response = (Command)connection.readCommand();
-            if(response.getType() == Command.Type.INITIAL_CONN) {
+            Command response = (Command) connection.readCommand();
+            if (response.getType() == Command.Type.INITIAL_CONN) {
                 String message = "Games Available: ";
-                Integer[] keys = games.keySet().toArray(new Integer[]{});
+                Integer[] keys = games.keySet().toArray(new Integer[] {});
                 for (int i = 0; i < games.size(); i++) {
-                    message += "Game " + keys[i] + ": " + games.get(keys[i]).size() + "/" 
+                    message += "Game " + keys[i] + ": " + games.get(keys[i]).size() + "/"
                             + ServerMain.maxplayers + " Players\n";
                 }
                 message += "Please input the game number you would like to join, or type 'new' to create a new game.";
                 connection.sendCommand(Command.Type.GAMES_LIST, new GameList(message));
                 response = (Command) connection.readCommand();
                 GameChoice gc = (GameChoice) response.getPayload();
-                if(gc.getChoice() == GameChoice.Choice.NEW) {
+                if (gc.getChoice() == GameChoice.Choice.NEW) {
                     Message msg = new Message("You have created a new table! Waiting for players...");
                     connection.sendCommand(Command.Type.MESSAGE, msg);
                     return 0;
@@ -55,7 +72,7 @@ public class ServerTableManager implements Runnable {
                     return gc.getId();
                 }
             } else if (response.getType() == Command.Type.RECONNECT) {
-                int id = (int)response.getPayload();
+                int id = (int) response.getPayload();
                 recon = true;
                 return id;
             }
