@@ -3,31 +3,50 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 
+/**
+ * The BackupConnection class handles the communication between a 
+ * primary server and its backup server.
+ */
 public class BackupConnection {
     private Socket backupSocket;
     private ObjectOutputStream backupOut;
     private ObjectInputStream backupIn;
 
+    /**
+     * Constructs a BackupConnection using the provided socket.
+     * Initializes object input and output streams for object communication.
+     *
+     * @param backupSocket the socket connected to the primary server
+     */
     public BackupConnection(Socket backupSocket) {
         try {
             this.backupSocket = backupSocket;
             this.backupOut = new ObjectOutputStream(this.backupSocket.getOutputStream());
             this.backupOut.flush();
-            //I swear to fuck if this works
             this.backupIn = new ObjectInputStream(this.backupSocket.getInputStream());
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+    /**
+     * Sets the socket read timeout for receiving data.
+     *
+     * @param timeout the timeout value in milliseconds
+     */
     public void setTimeout(int timeout) {
         try {
             backupSocket.setSoTimeout(timeout);
-        } catch(IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+    /**
+     * Sends a object to the primary server.
+     *
+     * @param obj the object to send
+     */
     public void write(Object obj) {
         try {
             backupOut.writeObject(obj);
@@ -37,6 +56,11 @@ public class BackupConnection {
         }
     }
 
+    /**
+     * Reads a object sent by the primary server.
+     *
+     * @return the received object, or null if an error occurs
+     */
     public Object read() {
         try {
             return backupIn.readObject();
@@ -46,6 +70,10 @@ public class BackupConnection {
         }
     }
 
+    /**
+     * Closes the input and output streams as well as the socket connection 
+     * to the primary server.
+     */
     public void closeConnections() {
         try {
             if (backupIn != null) {
