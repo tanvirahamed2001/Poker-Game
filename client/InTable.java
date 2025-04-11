@@ -8,7 +8,8 @@ public class InTable {
 
     /**
      * Constructor
-     * @param in Boolean, true of in table, false if not
+     * 
+     * @param in      Boolean, true of in table, false if not
      * @param tableID The table id the player is sitting in.
      */
     public InTable(boolean in, int tableID) {
@@ -18,6 +19,7 @@ public class InTable {
 
     /**
      * Returns the in status of the player.
+     * 
      * @return True if in table. False if not in table.
      */
     public boolean getIn() {
@@ -26,6 +28,7 @@ public class InTable {
 
     /**
      * Returns the table id the player is sitting in.
+     * 
      * @return The given table id.
      */
     public int getTableID() {

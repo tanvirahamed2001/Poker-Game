@@ -17,7 +17,8 @@ public class Player implements Serializable {
 
     /**
      * Creates a new Player object from client information.
-     * @param name The name of the player.
+     * 
+     * @param name  The name of the player.
      * @param funds The initial funds of the player.
      */
     public Player(String name, int funds, int id) {
@@ -29,6 +30,7 @@ public class Player implements Serializable {
 
     /**
      * Gets the player's name.
+     * 
      * @return The name of the player.
      */
     public String get_name() {
@@ -37,6 +39,7 @@ public class Player implements Serializable {
 
     /**
      * Sets the players seating arrangement at the table
+     * 
      * @param i the seating number
      */
     public void set_seat(int i) {
@@ -45,6 +48,7 @@ public class Player implements Serializable {
 
     /**
      * Get the seating number for the player
+     * 
      * @return the integer seat number
      */
     public int get_seat() {
@@ -53,6 +57,7 @@ public class Player implements Serializable {
 
     /**
      * Adds a new card to the player's hand.
+     * 
      * @param card The card to add.
      */
     public void new_card(Card card) {
@@ -61,6 +66,7 @@ public class Player implements Serializable {
 
     /**
      * Returns a string representation of the player's hand.
+     * 
      * @return A string containing all cards in the player's hand.
      */
     public String view_cards() {
@@ -73,6 +79,7 @@ public class Player implements Serializable {
 
     /**
      * Returns the player's entire hand of cards.
+     * 
      * @return An ArrayList of cards in the player's hand.
      */
     public ArrayList<Card> show_all_cards() {
@@ -88,6 +95,7 @@ public class Player implements Serializable {
 
     /**
      * Gets the player's current funds.
+     * 
      * @return The player's funds.
      */
     public int view_funds() {
@@ -96,6 +104,7 @@ public class Player implements Serializable {
 
     /**
      * Deposits funds into the player's account.
+     * 
      * @param amount The amount to deposit.
      */
     public void deposit_funds(int amount) {
@@ -104,6 +113,7 @@ public class Player implements Serializable {
 
     /**
      * Bets a specific amount and deducts it from the player's funds.
+     * 
      * @param bet The amount to bet.
      * @return The amount bet if successful, otherwise 0.
      */
@@ -120,6 +130,6 @@ public class Player implements Serializable {
      */
     @Override
     public String toString() {
-        return "Player Name: " + this.name + " Funds: " + this.funds; 
+        return "Player Name: " + this.name + " Funds: " + this.funds;
     }
 }

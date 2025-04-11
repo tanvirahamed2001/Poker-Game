@@ -3,12 +3,17 @@ package shared.card_based;
 import java.io.Serializable;
 
 /**
-* Card object. Houses all the basic necessities of a card.
-*/
-public class Card implements Serializable{
-    
-    public enum Suit {HEARTS, DIAMOND, CLUBS, SPADES}
-    public enum Rank {TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE, TEN, JACK, QUEEN, KING, ACE}
+ * Card object. Houses all the basic necessities of a card.
+ */
+public class Card implements Serializable {
+
+    public enum Suit {
+        HEARTS, DIAMOND, CLUBS, SPADES
+    }
+
+    public enum Rank {
+        TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE, TEN, JACK, QUEEN, KING, ACE
+    }
 
     private final Suit suit;
     private final Rank rank;
@@ -20,6 +25,7 @@ public class Card implements Serializable{
 
     /**
      * Returns the Suit of a given card
+     * 
      * @return the suit
      */
     public Suit get_suit() {
@@ -28,6 +34,7 @@ public class Card implements Serializable{
 
     /**
      * Returns the rank of a givencard
+     * 
      * @return the rank
      */
     public Rank get_rank() {

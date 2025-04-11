@@ -9,10 +9,13 @@ import shared.Colors;
 
 /**
  * The main client interface for the players
- * Will ask the player for their names and possible amount of funds to begin playing with
- * Might need to make fund authorization a server side thing as well at some point
+ * Will ask the player for their names and possible amount of funds to begin
+ * playing with
+ * Might need to make fund authorization a server side thing as well at some
+ * point
  * After getting this information, attempts to connect to the servers.
- * These servers will be hosted on the linux systems of the UofC to keep them consistent
+ * These servers will be hosted on the linux systems of the UofC to keep them
+ * consistent
  */
 public class ClientMain {
     // Change SERVER_IPS when needed to do actual testing
@@ -75,7 +78,8 @@ public class ClientMain {
     }
 
     /**
-     * Waits to get an ID assignment from the server, should have after connection is established
+     * Waits to get an ID assignment from the server, should have after connection
+     * is established
      * 
      * @return int ID
      */
