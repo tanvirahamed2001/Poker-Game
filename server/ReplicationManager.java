@@ -3,7 +3,6 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 import shared.communication_objects.*;
-import shared.*;
 
 /**
  * The ReplicationManager class handles the core logic for maintaining
@@ -184,9 +183,8 @@ public class ReplicationManager {
 
 /**
  * Waits for the primary server to establish a replication connection.
- * <p>
  * This method is used by backup servers to listen for a connection from the primary,
- * set up the {@link PrimaryConnection}, start listening for updates,
+ * set up the PrimaryConnection, start listening for updates,
  * and initialize the heartbeat monitoring.
  *
  * @param port the port to listen on for the primary's replication connection
@@ -212,8 +210,6 @@ private void waitForPrimaryConnection(int port) {
 
 /**
  * Updates the local Lamport clock based on a received timestamp.
- * <p>
- * This helps maintain a consistent logical ordering of events across distributed servers.
  *
  * @param ts the Lamport timestamp received from another server
  */
@@ -223,8 +219,7 @@ private void lamportRecieve(int ts) {
 
 /**
  * Reinitializes the replication listener when the connection to the primary is lost.
- * <p>
- * This method will call {@link #waitForPrimaryConnection(int)} with the configured port,
+ * This method will call waitForPrimaryConnection with the configured port,
  * reestablishing communication with the new or recovered primary.
  */
 private void reinitializeReplicationListener() {
@@ -236,7 +231,7 @@ private void reinitializeReplicationListener() {
     /**
      * Updates the internal map of replicated game states and updates or creates game tables accordingly.
      *
-     * @param state the replicated {@link GameState} received from the primary
+     * @param state the replicated GameState received from the primary
      */
     private void updateLocalGameState(GameState state) {
         replicatedGameStates.put(state.getGameId(), state);
@@ -274,7 +269,6 @@ private void reinitializeReplicationListener() {
 
 /**
  * Initiates the Bully Election algorithm when the primary is suspected to have failed.
- * <p>
  * This method checks for any higher-ID servers that are still alive.
  * If none respond, this server promotes itself to primary.
  */
@@ -332,7 +326,6 @@ private boolean sendElectionMessage(int targetId) throws IOException {
 
 /**
  * Listens for incoming election messages on a port determined by the server ID.
- * <p>
  * When an election message is received and this server is the intended target,
  * it responds with an acknowledgment indicating it is alive.
  */
