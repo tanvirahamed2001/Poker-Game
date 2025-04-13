@@ -136,8 +136,8 @@ public class ServerTable implements Runnable {
             System.out.println("Table #" + this.gameId + " is resuming...");
             connections = organizeSeats();
             sendAllPlayers(Command.Type.MESSAGE, new Message("Resuming Table #" + this.gameId + "..."));
+            printTableCards();
             for (int i = 0; i < numPlayers; i++) {
-                //printTableCards();
                 sendPlayer(Command.Type.MESSAGE, new Message("Your cards are: " + players.get(i).show_all_cards()), i);
             }
         }
