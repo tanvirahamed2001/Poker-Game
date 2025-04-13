@@ -54,7 +54,7 @@ public class ServerTableManager implements Runnable {
                 if (ServerMain.getGames().isEmpty()) {
                     connection.sendCommand(Command.Type.GAMES_LIST, new GameList("No Active Game Tables..."));
                 } else {
-                    String message = "Games Available: ";
+                    String message = "Games Available!\n";
                     Integer[] keys = games.keySet().toArray(new Integer[] {});
                     for (int i = 0; i < games.size(); i++) {
                         message += "Game " + keys[i] + ": " + games.get(keys[i]).size() + "/"
