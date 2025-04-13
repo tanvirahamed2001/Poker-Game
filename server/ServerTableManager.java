@@ -60,6 +60,7 @@ public class ServerTableManager implements Runnable {
                         message += "Game " + keys[i] + ": " + games.get(keys[i]).size() + "/"
                                 + ServerMain.maxplayers + " Players\n";
                     }
+                    message = message.substring(0, message.length() - 1);
                     connection.sendCommand(Command.Type.GAMES_LIST, new GameList(message));
                 }
                 response = (Command) connection.readCommand();
