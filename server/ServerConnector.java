@@ -72,7 +72,7 @@ public class ServerConnector implements Runnable {
                                     pool.submit(new ServerTableManager(pc));
                                 }
                             }
-                        } catch (IOException e) {
+                        } catch (Exception e) {
                             System.err.println("Error assigning player information...");
                         }
                     }).start();

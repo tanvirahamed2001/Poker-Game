@@ -3,6 +3,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 
+import shared.Colors;
+
 /**
  * Our Client - Server connection object
  * Houses all the sockets and streames necessary for the Client to communicate
@@ -26,7 +28,7 @@ public class ClientServerConnection {
             // I swear to fuck if this works
             this.primaryIn = new ObjectInputStream(this.primarySocket.getInputStream());
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println(Colors.RED + "Error in client server connection..." + Colors.RESET);
         }
     }
 
@@ -39,7 +41,7 @@ public class ClientServerConnection {
         try {
             primarySocket.setSoTimeout(timeout);
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println(Colors.RED + "Error in client server timout settings..." + Colors.RESET);
         }
     }
 
@@ -79,6 +81,7 @@ public class ClientServerConnection {
         try {
             return primaryIn.readObject();
         } catch (IOException | ClassNotFoundException e) {
+            System.out.println(Colors.RED + "Error in client server reading..." + Colors.RESET);
             return null;
         }
     }
@@ -98,7 +101,7 @@ public class ClientServerConnection {
                 primarySocket.close();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println(Colors.RED + "Error in closing client server sockets..." + Colors.RESET);
         }
     }
 }

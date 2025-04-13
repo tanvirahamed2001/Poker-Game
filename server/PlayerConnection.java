@@ -1,5 +1,7 @@
 import java.io.*;
 import java.net.Socket;
+
+import shared.Colors;
 import shared.Player;
 import shared.communication_objects.*;
 
@@ -24,16 +26,20 @@ public class PlayerConnection {
      * @param socket the socket connected to the player's client
      * @throws IOException if an I/O error occurs during stream setup
      */
-    public PlayerConnection(Player player, Socket socket) throws IOException {
-        this.player = player;
-        this.socket = socket;
+    public PlayerConnection(Player player, Socket socket) {
+        try {
+            this.player = player;
+            this.socket = socket;
 
-        // Initialize output stream first to prevent stream deadlock
-        this.out = new ObjectOutputStream(socket.getOutputStream());
-        this.out.flush();
+            // Initialize output stream first to prevent stream deadlock
+            this.out = new ObjectOutputStream(socket.getOutputStream());
+            this.out.flush();
 
-        // Then initialize input stream
-        this.in = new ObjectInputStream(socket.getInputStream());
+            // Then initialize input stream
+            this.in = new ObjectInputStream(socket.getInputStream());
+        } catch (Exception e) {
+            System.out.println("Error in server to client connection...");
+        }
     }
 
     /**
@@ -86,7 +92,7 @@ public class PlayerConnection {
      * Attaches the current Lamport timestamp.
      *
      * @param type the command type
-     * @param obj the object payload to send
+     * @param obj  the object payload to send
      */
     public void sendCommand(Command.Type type, Object obj) {
         int ts = ServerLamportClock.getInstance().sendEvent();
@@ -96,7 +102,7 @@ public class PlayerConnection {
             out.writeObject(cmd);
             out.flush();
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println("Error in server to client connection sending...");
         }
     }
 
@@ -116,6 +122,7 @@ public class PlayerConnection {
             ServerLamportClock.getInstance().receievedEvent(senderTS);
             return cmd;
         } catch (Exception e) {
+            System.out.println("Error in server to client connection reading...");
             return null;
         }
     }
@@ -125,8 +132,12 @@ public class PlayerConnection {
      *
      * @throws IOException if an error occurs while closing the socket
      */
-    public void close() throws IOException {
-        socket.close();
+    public void close() {
+        try {
+            socket.close();
+        } catch (Exception e) {
+            System.out.println("Error in server to client connection closing...");
+        }
     }
 
     /**

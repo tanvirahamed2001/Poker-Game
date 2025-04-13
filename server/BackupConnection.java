@@ -25,7 +25,7 @@ public class BackupConnection {
             this.backupOut.flush();
             this.backupIn = new ObjectInputStream(this.backupSocket.getInputStream());
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("Error in primary to backup connection...");
         }
     }
 
@@ -38,7 +38,7 @@ public class BackupConnection {
         try {
             backupSocket.setSoTimeout(timeout);
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("Error in primary to backup connection timeout...");
         }
     }
 
@@ -52,7 +52,7 @@ public class BackupConnection {
             backupOut.writeObject(obj);
             backupOut.flush();
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("Error in primary to backup connection writing...");
         }
     }
 
@@ -65,7 +65,7 @@ public class BackupConnection {
         try {
             return backupIn.readObject();
         } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
+            System.out.println("Error in primary to backup connection reading...");
             return null;
         }
     }
@@ -89,7 +89,7 @@ public class BackupConnection {
                 System.out.println("Closed backup listener...");
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("Error in primary to backup connection closing...");
         }
     }
 }

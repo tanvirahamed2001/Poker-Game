@@ -25,7 +25,7 @@ public class PrimaryConnection {
             this.primaryOut.flush();
             this.primaryIn = new ObjectInputStream(this.primarySocket.getInputStream());
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("Error in backup to primary connection...");
         }
     }
 
@@ -39,7 +39,7 @@ public class PrimaryConnection {
             primaryOut.writeObject(obj);
             primaryOut.flush();
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("Error in backup to primary writing...");;
         }
     }
 
@@ -52,7 +52,7 @@ public class PrimaryConnection {
         try {
             return primaryIn.readObject();
         } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
+            System.out.println("Error in backup to primary reading...");;
             return null;
         }
     }
@@ -76,7 +76,7 @@ public class PrimaryConnection {
                 System.out.println("Closed primary replication listener...");
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("Error in backup to primary connection closing...");;
         }
     }
 }
