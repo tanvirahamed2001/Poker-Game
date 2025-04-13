@@ -51,13 +51,17 @@ public class ServerTableManager implements Runnable {
             recon = false;
             Command response = (Command) connection.readCommand();
             if (response.getType() == Command.Type.INITIAL_CONN) {
-                String message = "Games Available: ";
-                Integer[] keys = games.keySet().toArray(new Integer[] {});
-                for (int i = 0; i < games.size(); i++) {
-                    message += "Game " + keys[i] + ": " + games.get(keys[i]).size() + "/"
-                            + ServerMain.maxplayers + " Players\n";
+                if (ServerMain.getGames().isEmpty()) {
+                    connection.sendCommand(Command.Type.GAMES_LIST, new GameList("No Active Game Tables..."));
+                } else {
+                    String message = "Games Available: ";
+                    Integer[] keys = games.keySet().toArray(new Integer[] {});
+                    for (int i = 0; i < games.size(); i++) {
+                        message += "Game " + keys[i] + ": " + games.get(keys[i]).size() + "/"
+                                + ServerMain.maxplayers + " Players\n";
+                    }
+                    connection.sendCommand(Command.Type.GAMES_LIST, new GameList(message));
                 }
-                connection.sendCommand(Command.Type.GAMES_LIST, new GameList(message));
                 response = (Command) connection.readCommand();
                 GameChoice gc = (GameChoice) response.getPayload();
                 if (gc.getChoice() == GameChoice.Choice.NEW) {
