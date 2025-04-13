@@ -201,7 +201,7 @@ public class ReplicationManager {
                 startHeartbeat();
                 break;
             } catch (IOException e) {
-                e.printStackTrace();
+                System.out.println("Error in backup waiting for primary...");
             }
         }
     }

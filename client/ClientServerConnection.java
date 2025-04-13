@@ -68,7 +68,7 @@ public class ClientServerConnection {
             primaryOut.writeObject(obj);
             primaryOut.flush();
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("Error in client to server writing...");
         }
     }
 
