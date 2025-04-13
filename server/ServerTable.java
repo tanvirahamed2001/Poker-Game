@@ -100,7 +100,7 @@ public class ServerTable implements Runnable {
         this.currentBets = state.getCurrentBets();
         this.tablecards = state.getTableCards();
         this.deck = state.getSavedDeck();
-        System.out.println("Game " + gameId + " state updated from snapshot.");
+        System.out.println("Table #" + gameId + " state updated..");
     }
 
     /**
@@ -109,8 +109,8 @@ public class ServerTable implements Runnable {
     @Override
     public void run() {
         if (!inprogress) {
-            System.out.println("Game Started!");
-            sendAllPlayers(Command.Type.MESSAGE, new Message("The Game has Begun!"));
+            System.out.println("Game Started...");
+            sendAllPlayers(Command.Type.MESSAGE, new Message("The Game has Begun..."));
             assignSeats();
             numPlayers = connections.size();
             activePlayers = new boolean[numPlayers];
@@ -133,14 +133,15 @@ public class ServerTable implements Runnable {
             }
             lastActive = currentplayer;
         } else {
-            System.out.println("Game " + this.gameId + " is resuming!");
+            System.out.println("Table #" + this.gameId + " is resuming...");
             connections = organizeSeats();
-            sendAllPlayers(Command.Type.MESSAGE, new Message("Resuming Table " + this.gameId));
+            sendAllPlayers(Command.Type.MESSAGE, new Message("Resuming Table #" + this.gameId + "..."));
             for (int i = 0; i < numPlayers; i++) {
+                printTableCards();
                 sendPlayer(Command.Type.MESSAGE, new Message("Your cards are: " + players.get(i).show_all_cards()), i);
-                sendPlayer(Command.Type.MESSAGE, new Message("Turn 2: The Flop\nCards: " + tablecards.toString()), i);
             }
         }
+
         // Main game loop for each street until showdown.
         while (currentTurn <= 5) {
             replicateGameState();
@@ -165,7 +166,7 @@ public class ServerTable implements Runnable {
                 }
             } while (!roundCompleted);
 
-            sendAllPlayers(Command.Type.MESSAGE, new Message("Betting round over. Moving to next turn."));
+            sendAllPlayers(Command.Type.MESSAGE, new Message("Betting round over. Moving to next turn...."));
             currentTurn++;
             clearBets();
 
@@ -176,19 +177,19 @@ public class ServerTable implements Runnable {
                     tablecards.add(deck.deal_card());
                     replicateGameState();
                     sendAllPlayers(Command.Type.MESSAGE,
-                            new Message("Turn 2: The Flop\nCards: " + tablecards.toString()));
+                            new Message("Turn 2: The Flop\nTable Cards: " + tablecards.toString()));
                     break;
                 case 3: // Turn.
                     tablecards.add(deck.deal_card());
                     replicateGameState();
                     sendAllPlayers(Command.Type.MESSAGE,
-                            new Message("Turn 3: The Turn\nCard: " + tablecards.get(3).toString()));
+                            new Message("Turn 3: The Turn\nTable Cards: " + tablecards.toString()));
                     break;
                 case 4: // River.
                     tablecards.add(deck.deal_card());
                     replicateGameState();
                     sendAllPlayers(Command.Type.MESSAGE,
-                            new Message("Turn 4: The River\nCard: " + tablecards.get(4).toString()));
+                            new Message("Turn 4: The River\nTable Cards: " + tablecards.toString()));
                     break;
                 case 5: // Showdown.
                     sendAllPlayers(Command.Type.MESSAGE, new Message("Turn 5: The Showdown!"));
@@ -196,10 +197,10 @@ public class ServerTable implements Runnable {
                     if (winners.size() == 1) {
                         int winnum = winners.get(0).playernumber;
                         sendAllPlayers(Command.Type.MESSAGE,
-                                new Message("Player " + winnum + " has won the round! They earn $" + pot + "!"));
+                                new Message("Player " + winnum + " has won the round! They earn $" + pot + "..."));
                         players.get(winnum).deposit_funds(pot);
                     } else {
-                        sendAllPlayers(Command.Type.MESSAGE, new Message("Players tied! Splitting pot."));
+                        sendAllPlayers(Command.Type.MESSAGE, new Message("Players tied! Splitting pot..."));
                         int share = pot / winners.size();
                         for (Poker_Hands ph : winners) {
                             players.get(ph.playernumber).deposit_funds(share);
@@ -224,11 +225,28 @@ public class ServerTable implements Runnable {
                     tablecards.clear();
                     currentplayer = 0;
                     lastActive = currentplayer;
-                    sendAllPlayers(Command.Type.MESSAGE, new Message("New hand started."));
+                    sendAllPlayers(Command.Type.MESSAGE, new Message("New hand started..."));
                     break;
             }
             lastActive = currentplayer;
             bettingStart = true;
+        }
+    }
+
+    private void printTableCards() {
+        switch (currentTurn) {
+            case 2: // Flop.
+                sendAllPlayers(Command.Type.MESSAGE,
+                        new Message("Turn 2: The Flop\nTable Cards: " + tablecards.toString()));
+                break;
+            case 3: // Turn.
+                sendAllPlayers(Command.Type.MESSAGE,
+                        new Message("Turn 3: The Turn\nTable Cards: " + tablecards.toString()));
+                break;
+            case 4: // River.
+                sendAllPlayers(Command.Type.MESSAGE,
+                        new Message("Turn 4: The River\nTable Cards: " + tablecards.toString()));
+                break;
         }
     }
 
@@ -297,7 +315,7 @@ public class ServerTable implements Runnable {
                                                                                     // all in and they're allowed to
                                                                                     // continue playing until the end of
                                                                                     // the round
-                            sendAllPlayers(Command.Type.MESSAGE, new Message("Player " + currentplayer + " checks."));
+                            sendAllPlayers(Command.Type.MESSAGE, new Message("Player " + currentplayer + " checks..."));
                             if (currentplayer == lastActive) {
                                 activeCheck = true;
                             }
@@ -331,26 +349,26 @@ public class ServerTable implements Runnable {
                         }
                         if (numac == 1) {// i.e only 1 player left on the table
                             sendPlayer(Command.Type.MESSAGE,
-                                    new Message("You're the last player, please check until the final round!"),
+                                    new Message("You're the last player, please check until the final round..."),
                                     currentplayer);
                             getPlayerInput();
                             break;
                         }
                         activePlayers[currentplayer] = false;
-                        sendAllPlayers(Command.Type.MESSAGE, new Message("Player " + currentplayer + " folds."));
+                        sendAllPlayers(Command.Type.MESSAGE, new Message("Player " + currentplayer + " folds..."));
                         break;
 
                     case BET:
                         int amount = playerChoice.getBet();
                         if (amount <= 0 || amount > players.get(currentplayer).view_funds()
                                 || amount <= (currentbet - currentBets.get(currentplayer))) {
-                            sendPlayer(Command.Type.MESSAGE, new Message("Invalid bet amount. Try again."),
+                            sendPlayer(Command.Type.MESSAGE, new Message("Invalid bet amount. Try again..."),
                                     currentplayer);
                             getPlayerInput();
                         } else {
                             players.get(currentplayer).deposit_funds(-amount);
                             sendAllPlayers(Command.Type.MESSAGE,
-                                    new Message("Player " + currentplayer + " bets $" + amount));
+                                    new Message("Player " + currentplayer + " bets $" + amount + "..."));
                             currentbet = amount;
                             pot += amount;
                             currentBets.set(currentplayer, amount);
@@ -360,14 +378,14 @@ public class ServerTable implements Runnable {
 
                     case CALL:
                         if (currentbet > players.get(currentplayer).view_funds()) {
-                            sendPlayer(Command.Type.MESSAGE, new Message("Insufficient funds to call. You must fold."),
+                            sendPlayer(Command.Type.MESSAGE, new Message("Insufficient funds to call. You must fold..."),
                                     currentplayer);
                             activePlayers[currentplayer] = false;
                         } else {
                             players.get(currentplayer).deposit_funds(-currentbet);
                             pot += currentbet;
                             currentBets.set(currentplayer, currentbet);
-                            sendAllPlayers(Command.Type.MESSAGE, new Message("Player " + currentplayer + " calls."));
+                            sendAllPlayers(Command.Type.MESSAGE, new Message("Player " + currentplayer + " calls..."));
                         }
                         break;
                 }
@@ -411,13 +429,13 @@ public class ServerTable implements Runnable {
      * Replicates the game state across all backups using the Replication Manager
      */
     private void replicateGameState() {
-        System.out.println("Beginning Game " + gameId + " replication!");
+        System.out.println("Beginning Game #" + gameId + " replication!");
         ArrayList<Card> tablecardsSnapshot = new ArrayList<>(tablecards);
         GameState currentState = new GameState(gameId, pot, currentTurn, currentplayer, lastActive, numPlayers,
                 currentbet, ServerLamportClock.getInstance().sendEvent(), inprogress, activePlayers, roundCompleted,
                 players, currentBets, tablecardsSnapshot, deck);
         ReplicationManager.getInstance(true).sendStateUpdate(currentState);
-        System.out.println("Finished Game " + gameId + " replication!");
+        System.out.println("Finished Game #" + gameId + " replication!");
         replicatePlayer();
     }
 
@@ -532,9 +550,10 @@ public class ServerTable implements Runnable {
 
     /**
      * Checks other possible hands
+     * 
      * @param combined List of combined cards
-     * @param j is a player representation?
-     * @param player List of player integers
+     * @param j        is a player representation?
+     * @param player   List of player integers
      * @return the list of poker hands
      */
     private Poker_Hands check_other(ArrayList<Card> combined, int j, ArrayList<Integer> player) {
@@ -625,6 +644,7 @@ public class ServerTable implements Runnable {
 
     /**
      * Checks for a flush
+     * 
      * @param hand The Player Hand
      * @return list of cards
      */
@@ -654,6 +674,7 @@ public class ServerTable implements Runnable {
 
     /**
      * Checks for straight
+     * 
      * @param combined List of cards
      * @return list of cards
      */

@@ -1,3 +1,4 @@
+import java.awt.Color;
 import java.io.*;
 import java.net.*;
 import java.util.Scanner;
@@ -41,8 +42,6 @@ public class ClientMain {
             sendCommand(Command.Type.NEW, null);
             id = getIDFromServer();
             player = getPlayerInfo(scanner, id);
-            printTerminalMessage(String.format("Connected to the game server with name %s and funds %d!",
-                    player.get_name(), player.view_funds()));
             sendCommand(Command.Type.PLAYER_INFO, player);
             handleGameSelection(scanner);
             Thread gameThread = new Thread(() -> playGame(scanner));
@@ -53,7 +52,7 @@ public class ClientMain {
                 printTerminalMessage(e.getLocalizedMessage());
             }
         } else {
-            System.out.println("Failed to connect to the server. Please try again later.");
+            printTerminalMessage(Colors.RED + "Failed to connect to game servers..." + Colors.RESET);
         }
         scanner.close();
         serverConnection.closeConnections();
@@ -102,16 +101,16 @@ public class ClientMain {
      * @return Player Object
      */
     private static Player getPlayerInfo(Scanner scanner, int id) {
-        printTerminalMessage("Enter your name: ");
+        printTerminalMessage("Enter your name...");
         String playerName = scanner.nextLine();
         int depositAmount;
         while (true) {
-            printTerminalMessage("Enter initial deposit amount: $");
+            printTerminalMessage("Enter initial deposit amount in dollars...");
             try {
                 depositAmount = Integer.parseInt(scanner.nextLine());
                 break;
             } catch (NumberFormatException e) {
-                printTerminalMessage("Invalid input! Please try again!");
+                printTerminalMessage(Colors.RED + "Wrong input type, please deposit again..." + Colors.RESET);
             }
 
         }
@@ -130,12 +129,10 @@ public class ClientMain {
         for (String ip : SERVER_IPS) {
             try {
                 Socket socket = new Socket(ip, SERVER_PORT);
-                System.out.println("Connected to primary server at " + ip + ":" + SERVER_PORT);
                 serverConnection = new ClientServerConnection(socket);
+                printTerminalMessage(Colors.GREEN + "Connected to: " + ip + Colors.RESET);
                 break;
             } catch (IOException e) {
-                System.err.println("Failed to connect to primary server");
-                e.printStackTrace();
                 failures++;
             }
         }
@@ -155,8 +152,7 @@ public class ClientMain {
             cmd.setLamportTS(ts);
             serverConnection.write(cmd);
         } catch (Exception e) {
-            printTerminalMessage(String.format(
-                    "Error sending command object: " + e.getClass().getSimpleName() + " in ClientMain Line 149."));
+            printTerminalMessage(Colors.RED + "Error sending command..." + Colors.RESET);
         }
     }
 
@@ -187,7 +183,7 @@ public class ClientMain {
             GameList games = (GameList) serverResponse.getPayload();
             printTerminalMessage(games.getGames());
         }
-        printTerminalMessage("Enter game number or type 'new': ");
+        printTerminalMessage("Enter game number or type 'new'...");
         GameChoice gc;
         if (scanner.hasNextInt()) {
             gc = new GameChoice(GameChoice.Choice.JOIN);
@@ -199,7 +195,6 @@ public class ClientMain {
         sendCommand(Command.Type.GAME_CHOICE, gc);
         serverResponse = readCommand();
         printTerminalMessage(((Message) serverResponse.getPayload()).getMsg());
-        printTerminalMessage("Waiting for server table information...");
         serverResponse = readCommand();
         table_info = new InTable(true, ((TableInfo) serverResponse.getPayload()).getTableID());
         playing = true;
@@ -216,7 +211,7 @@ public class ClientMain {
                 Command serverResponse = readCommand();
                 if (serverResponse == null) {
                     Thread.sleep(5000);
-                    printTerminalMessage("Server connection lost. Attempting to reconnect...");
+                    printTerminalMessage(Colors.RED + "Server connection lost. Attempting to reconnect..." + Colors.RESET);
                     reconnectToServer();
                 } else {
                     handleServerGameResponse(serverResponse, scanner);
@@ -236,7 +231,7 @@ public class ClientMain {
     private static void handleServerGameResponse(Command response, Scanner scanner) {
         switch (response.getType()) {
             case GAME_OVER:
-                printTerminalMessage("Game Over!");
+                printTerminalMessage(Colors.RED + "Game Over!" + Colors.RESET);
                 playing = false;
                 break;
             case MESSAGE:
@@ -244,7 +239,6 @@ public class ClientMain {
                 break;
             case CLIENT_UPDATE_PLAYER:
                 player = (Player) response.getPayload();
-                printTerminalMessage("Updating player information...");
                 break;
             case TURN_TOKEN:
                 handleTurn(scanner);
@@ -265,13 +259,13 @@ public class ClientMain {
                 TurnChoice.Choice choice = TurnChoice.Choice.valueOf(input);
                 TurnChoice turnChoice = new TurnChoice(choice);
                 if (choice == TurnChoice.Choice.BET) {
-                    System.out.print("Enter bet amount: $");
+                    printTerminalMessage("Enter bet amount in dollars...");
                     turnChoice.betAmount(Integer.parseInt(scanner.nextLine()));
                 }
                 sendCommand(Command.Type.TURN_CHOICE, turnChoice);
                 break;
             } catch (IllegalArgumentException e) {
-                System.out.println("Invalid choice. Try again.");
+                printTerminalMessage(Colors.RED + "Wrong input type, please bet again..." + Colors.RESET);
             }
         }
     }
@@ -284,20 +278,18 @@ public class ClientMain {
     private static void reconnectToServer() {
         serverConnection.closeConnections();
         while (!connectToServer()) {
-            printTerminalMessage("Reconnect attempt failed. Retrying...");
+            printTerminalMessage(Colors.RED + "Reconnect attempt failed. Retrying..." + Colors.RESET);
             try {
                 Thread.sleep(3000);
             } catch (InterruptedException ie) {
             }
         }
-        printTerminalMessage("Reconnected successfully!");
+        printTerminalMessage(Colors.GREEN + "Reconnected successfully..." + Colors.RESET);
         sendCommand(Command.Type.RECONNECT, null);
         sendCommand(Command.Type.PLAYER_INFO, player);
         if (table_info.getIn()) {
-            printTerminalMessage("In table before disconnect...attempting to join table " + table_info.getTableID());
             sendCommand(Command.Type.RECONNECT, table_info.getTableID());
         } else {
-            printTerminalMessage("Client was not in a table, getting table list...");
             handleGameSelection(new Scanner(System.in));
         }
     }

@@ -8,10 +8,14 @@ import shared.*;
 import shared.communication_objects.*;
 
 /**
- * TheServerConnector class listens for incoming client connections on a designated port
- * and delegates each client to a new ServerTableManager instance for game management.
- * It supports both new connections and reconnections, handling client ID assignment and
- * player initialization. This class is intended to run as a single server-side listener
+ * TheServerConnector class listens for incoming client connections on a
+ * designated port
+ * and delegates each client to a new ServerTableManager instance for game
+ * management.
+ * It supports both new connections and reconnections, handling client ID
+ * assignment and
+ * player initialization. This class is intended to run as a single server-side
+ * listener
  * and should be started in its own thread.
  */
 public class ServerConnector implements Runnable {
@@ -24,18 +28,18 @@ public class ServerConnector implements Runnable {
      * For each accepted socket, a new PlayerConnection is created.
      * Based on the initial Command Type either a new player is assigned
      * a unique ID or a reconnection is processed. All valid players are passed
-     * to a  ServerTableManager via a thread pool.
+     * to a ServerTableManager via a thread pool.
      */
     @Override
     public void run() {
         ExecutorService pool = Executors.newCachedThreadPool(); // Thread pool for managing multiple clients
         try (ServerSocket connector = new ServerSocket(6834)) {
-            System.out.println("Server is running and waiting for connections on port 6834...");
+            System.out.println("Server is running and waiting for connections...");
             while (true) {
                 try {
                     Socket socket = connector.accept();
                     new Thread(() -> {
-                        System.out.println("New client connected: " + socket.getInetAddress());
+                        System.out.println("New client connected...");
                         try {
                             PlayerConnection pc = new PlayerConnection(null, socket);
 
@@ -69,16 +73,15 @@ public class ServerConnector implements Runnable {
                                 }
                             }
                         } catch (IOException e) {
-                            System.err.println("Error assigning player information: " + e.getMessage()
-                                    + " in ServerConnector line 46.");
+                            System.err.println("Error assigning player information...");
                         }
                     }).start();
                 } catch (IOException e) {
-                    System.err.println("Error opening client socket: " + e.getMessage() + " in ServerConnector line 50.");
+                    System.err.println("Error opening client socket...");
                 }
             }
         } catch (IOException e) {
-            System.err.println("Error starting the server: " + e.getMessage());
+            System.err.println("Error starting the server...");
         } finally {
             pool.shutdown(); // Gracefully shuts down the thread pool when server stops
         }

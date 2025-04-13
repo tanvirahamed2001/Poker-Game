@@ -64,8 +64,7 @@ public class ReplicationManager {
             new Endpoint("localhost", 6836),
             new Endpoint("localhost", 6837),
             new Endpoint("localhost", 6838),
-            new Endpoint("localhost", 6839)
-    );
+            new Endpoint("localhost", 6839));
 
     private final int DEFAULT_REPLICATION_PORT = 6836;
     private final int CLIENT_PORT = 6834;
@@ -73,7 +72,7 @@ public class ReplicationManager {
 
     /**
      * Private constructor that initializes primary or backup-specific components
-     * based on the  isPrimary flag.
+     * based on the isPrimary flag.
      *
      * @param isPrimary true if this instance is the primary server
      */
@@ -164,8 +163,7 @@ public class ReplicationManager {
                 lamportRecieve(receivedState.getLamportTS());
                 updateLocalGameState(receivedState);
                 lastUpdateTimestamp = System.currentTimeMillis();
-                System.out.println("Received and applied GameState update for game " + receivedState.getGameId());
-
+                System.out.println("Applied Game #" + receivedState.getGameId() + " gamestate...");
                 Command ack = new Command(Command.Type.REPLICATION_ACK, "ack");
                 ack.setLamportTS(ServerLamportClock.getInstance().sendEvent());
                 primaryConn.write(ack);
@@ -181,55 +179,56 @@ public class ReplicationManager {
         }
     }
 
-/**
- * Waits for the primary server to establish a replication connection.
- * This method is used by backup servers to listen for a connection from the primary,
- * set up the PrimaryConnection, start listening for updates,
- * and initialize the heartbeat monitoring.
- *
- * @param port the port to listen on for the primary's replication connection
- */
-private void waitForPrimaryConnection(int port) {
-    while (true) {
-        try {
-            if (replicationListener == null || replicationListener.isClosed()) {
-                replicationListener = new ServerSocket(port);
-                System.out.println("Backup " + serverId + " waiting for primary replication connection on port " + port);
+    /**
+     * Waits for the primary server to establish a replication connection.
+     * This method is used by backup servers to listen for a connection from the
+     * primary,
+     * set up the PrimaryConnection, start listening for updates,
+     * and initialize the heartbeat monitoring.
+     *
+     * @param port the port to listen on for the primary's replication connection
+     */
+    private void waitForPrimaryConnection(int port) {
+        while (true) {
+            try {
+                if (replicationListener == null || replicationListener.isClosed()) {
+                    replicationListener = new ServerSocket(port);
+                }
+                Socket s = replicationListener.accept();
+                primaryConn = new PrimaryConnection(s);
+                new Thread(() -> listenForUpdates()).start();
+                lastUpdateTimestamp = System.currentTimeMillis();
+                startHeartbeat();
+                break;
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-            Socket s = replicationListener.accept();
-            primaryConn = new PrimaryConnection(s);
-            new Thread(() -> listenForUpdates()).start();
-            lastUpdateTimestamp = System.currentTimeMillis();
-            startHeartbeat();
-            break;
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
-}
-
-/**
- * Updates the local Lamport clock based on a received timestamp.
- *
- * @param ts the Lamport timestamp received from another server
- */
-private void lamportRecieve(int ts) {
-    ServerLamportClock.getInstance().receievedEvent(ts);
-}
-
-/**
- * Reinitializes the replication listener when the connection to the primary is lost.
- * This method will call waitForPrimaryConnection with the configured port,
- * reestablishing communication with the new or recovered primary.
- */
-private void reinitializeReplicationListener() {
-    int replicationPort = Integer.getInteger("replicationPort", DEFAULT_REPLICATION_PORT);
-    waitForPrimaryConnection(replicationPort);
-}
-
 
     /**
-     * Updates the internal map of replicated game states and updates or creates game tables accordingly.
+     * Updates the local Lamport clock based on a received timestamp.
+     *
+     * @param ts the Lamport timestamp received from another server
+     */
+    private void lamportRecieve(int ts) {
+        ServerLamportClock.getInstance().receievedEvent(ts);
+    }
+
+    /**
+     * Reinitializes the replication listener when the connection to the primary is
+     * lost.
+     * This method will call waitForPrimaryConnection with the configured port,
+     * reestablishing communication with the new or recovered primary.
+     */
+    private void reinitializeReplicationListener() {
+        int replicationPort = Integer.getInteger("replicationPort", DEFAULT_REPLICATION_PORT);
+        waitForPrimaryConnection(replicationPort);
+    }
+
+    /**
+     * Updates the internal map of replicated game states and updates or creates
+     * game tables accordingly.
      *
      * @param state the replicated GameState received from the primary
      */
@@ -239,7 +238,7 @@ private void reinitializeReplicationListener() {
         if (currentTable != null) {
             currentTable.updateState(state);
         } else {
-            System.err.println("No active game for game ID " + state.getGameId() + ". Creating new instance from replication state.");
+            System.err.println("No active game #" + state.getGameId() + ". Creating new instance...");
             ArrayList<PlayerConnection> dummyConnections = new ArrayList<>();
             ServerTable newTable = new ServerTable(state.getGameId(), dummyConnections);
             newTable.updateState(state);
@@ -251,7 +250,8 @@ private void reinitializeReplicationListener() {
      * If a timeout occurs, the server initiates an election.
      */
     private void startHeartbeat() {
-        if (heartbeatTimer != null) heartbeatTimer.cancel();
+        if (heartbeatTimer != null)
+            heartbeatTimer.cancel();
         heartbeatTimer = new Timer(true);
         lastUpdateTimestamp = System.currentTimeMillis();
         heartbeatTimer.scheduleAtFixedRate(new TimerTask() {
@@ -259,7 +259,6 @@ private void reinitializeReplicationListener() {
             public void run() {
                 long now = System.currentTimeMillis();
                 if (now - lastUpdateTimestamp > HEARTBEAT_THRESHOLD) {
-                    System.out.println("No update received in threshold time. Initiating election.");
                     startElection();
                     lastUpdateTimestamp = now;
                 }
@@ -267,107 +266,105 @@ private void reinitializeReplicationListener() {
         }, HEARTBEAT_THRESHOLD, HEARTBEAT_THRESHOLD);
     }
 
-/**
- * Initiates the Bully Election algorithm when the primary is suspected to have failed.
- * This method checks for any higher-ID servers that are still alive.
- * If none respond, this server promotes itself to primary.
- */
-private void startElection() {
-    System.out.println("Server " + serverId + " starting election.");
-    boolean higherServerAlive = false;
-    for (Integer id : allServerIds) {
-        if (id > serverId) {
-            try {
-                if (sendElectionMessage(id)) {
-                    higherServerAlive = true;
-                    break;
+    /**
+     * Initiates the Bully Election algorithm when the primary is suspected to have
+     * failed.
+     * This method checks for any higher-ID servers that are still alive.
+     * If none respond, this server promotes itself to primary.
+     */
+    private void startElection() {
+        System.out.println("Server #" + serverId + " starting election...");
+        boolean higherServerAlive = false;
+        for (Integer id : allServerIds) {
+            if (id > serverId) {
+                try {
+                    if (sendElectionMessage(id)) {
+                        higherServerAlive = true;
+                        break;
+                    }
+                } catch (IOException e) {
+                    System.err.println("No response from server with id #" + id + "...");
+                }
+            }
+        }
+        if (!higherServerAlive) {
+            System.out.println("No higher server responded. Server " + serverId + " becoming new primary...");
+            promoteToPrimary();
+        } else {
+            System.out.println("A higher server is alive...");
+        }
+    }
+
+    /**
+     * Sends an election message to a target server with a higher ID to determine if
+     * it's alive.
+     *
+     * @param targetId the ID of the target server
+     * @return true if the target server responded and is alive; false otherwise
+     * @throws IOException if a socket connection error occurs
+     */
+    private boolean sendElectionMessage(int targetId) throws IOException {
+        String targetHost = "localhost";
+        int baseElectionPort = 7000;
+        int targetPort = baseElectionPort + targetId;
+        try (Socket socket = new Socket(targetHost, targetPort)) {
+            socket.setSoTimeout(3000);
+            ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+            oos.flush();
+            ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+
+            Command electionCmd = new Command(Command.Type.ELECTION, new Election(serverId, targetId));
+            oos.writeObject(electionCmd);
+            oos.flush();
+
+            Command responseCmd = (Command) ois.readObject();
+            return responseCmd.getType() == Command.Type.ELECTION && (Boolean) responseCmd.getPayload();
+        } catch (IOException | ClassNotFoundException e) {
+            System.err.println("Error sending election message to server " + targetId + "...");
+        }
+        return false;
+    }
+
+    /**
+     * Listens for incoming election messages on a port determined by the server ID.
+     * When an election message is received and this server is the intended target,
+     * it responds with an acknowledgment indicating it is alive.
+     */
+    private void startElectionListener() {
+        new Thread(() -> {
+            int baseElectionPort = 7000;
+            int myElectionPort = baseElectionPort + serverId;
+            try (ServerSocket electionSocket = new ServerSocket(myElectionPort)) {
+                while (true) {
+                    Socket socket = electionSocket.accept();
+                    new Thread(() -> {
+                        try {
+                            ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+                            oos.flush();
+                            ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+                            // Space for object streams to init
+                            Command electionCmd = (Command) ois.readObject();
+                            if (electionCmd.getType() == Command.Type.ELECTION && ((Election) electionCmd.getPayload()).get_target_id() == serverId) {
+                                Command response = new Command(Command.Type.ELECTION, Boolean.TRUE);
+                                oos.writeObject(response);
+                                oos.flush();
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        } finally {
+                            try {
+                                socket.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }).start();
                 }
             } catch (IOException e) {
-                System.err.println("No response from server with id " + id);
+                System.err.println("Election listener on server " + serverId + " failed...");
             }
-        }
+        }).start();
     }
-    if (!higherServerAlive) {
-        System.out.println("No higher server responded. Server " + serverId + " becomes the new primary.");
-        promoteToPrimary();
-    } else {
-        System.out.println("A higher server is alive. Waiting for new leader announcement.");
-    }
-}
-
-/**
- * Sends an election message to a target server with a higher ID to determine if it's alive.
- *
- * @param targetId the ID of the target server
- * @return true if the target server responded and is alive; false otherwise
- * @throws IOException if a socket connection error occurs
- */
-private boolean sendElectionMessage(int targetId) throws IOException {
-    String targetHost = "localhost";
-    int baseElectionPort = 7000;
-    int targetPort = baseElectionPort + targetId;
-    try (Socket socket = new Socket(targetHost, targetPort)) {
-        socket.setSoTimeout(3000);
-        ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-        oos.flush();
-        ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
-
-        Command electionCmd = new Command(Command.Type.ELECTION, new Election(serverId, targetId));
-        oos.writeObject(electionCmd);
-        oos.flush();
-
-        Command responseCmd = (Command) ois.readObject();
-        return responseCmd.getType() == Command.Type.ELECTION && (Boolean) responseCmd.getPayload();
-    } catch (IOException | ClassNotFoundException e) {
-        System.err.println("Error sending election message to server " + targetId + ": " + e.getMessage());
-    }
-    return false;
-}
-
-/**
- * Listens for incoming election messages on a port determined by the server ID.
- * When an election message is received and this server is the intended target,
- * it responds with an acknowledgment indicating it is alive.
- */
-private void startElectionListener() {
-    new Thread(() -> {
-        int baseElectionPort = 7000;
-        int myElectionPort = baseElectionPort + serverId;
-        try (ServerSocket electionSocket = new ServerSocket(myElectionPort)) {
-            System.out.println("Server " + serverId + " listening for election messages on port " + myElectionPort);
-            while (true) {
-                Socket socket = electionSocket.accept();
-                new Thread(() -> {
-                    try {
-                        ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-                        oos.flush();
-                        ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
-
-                        Command electionCmd = (Command) ois.readObject();
-                        if (electionCmd.getType() == Command.Type.ELECTION &&
-                            ((Election) electionCmd.getPayload()).get_target_id() == serverId) {
-
-                            Command response = new Command(Command.Type.ELECTION, Boolean.TRUE);
-                            oos.writeObject(response);
-                            oos.flush();
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    } finally {
-                        try {
-                            socket.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }).start();
-            }
-        } catch (IOException e) {
-            System.err.println("Election listener on server " + serverId + " failed: " + e.getMessage());
-        }
-    }).start();
-}
-
 
     /**
      * Promotes the current server to primary, reconnects to backups,
@@ -375,30 +372,32 @@ private void startElectionListener() {
      */
     private void promoteToPrimary() {
         isPrimary = true;
-        System.out.println("Server " + serverId + " is now promoted to primary.");
         try {
-            if (replicationListener != null) replicationListener.close();
+            if (replicationListener != null)
+                replicationListener.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
         ServerMain.updateGames(replicatedGameStates);
         connectBackupsToNewPrimary();
-        if (heartbeatTimer != null) heartbeatTimer.cancel();
+        if (heartbeatTimer != null)
+            heartbeatTimer.cancel();
 
         ServerConnector connector = new ServerConnector();
         new Thread(connector).start();
     }
 
     /**
-     * Called after promotion to primary. Reconnects to all backups to resume state replication.
+     * Called after promotion to primary. Reconnects to all backups to resume state
+     * replication.
      */
     private void connectBackupsToNewPrimary() {
         for (Endpoint ep : backupEndpoints) {
             try {
                 backupConns.add(new BackupConnection(new Socket(ep.host, ep.port)));
-                System.out.println("New primary connected to backup at " + ep);
+                System.out.println("New primary connected to backup at " + ep + "...");
             } catch (IOException e) {
-                System.err.println("New primary failed to connect to backup at " + ep);
+                System.err.println("New primary failed to connect to backup at " + ep + "...");
             }
         }
     }

@@ -6,9 +6,12 @@ import java.util.concurrent.Executors;
 import shared.communication_objects.*;
 
 /**
- * The ServerMain class serves as the central entry point for the multiplayer server system.
- * It handles game creation, player matchmaking, reconnection logic, and delegates execution
- * of active game tables using a thread pool. It also initializes replication behavior
+ * The ServerMain class serves as the central entry point for the multiplayer
+ * server system.
+ * It handles game creation, player matchmaking, reconnection logic, and
+ * delegates execution
+ * of active game tables using a thread pool. It also initializes replication
+ * behavior
  * depending on whether the server is launched in primary or backup mode.
  */
 public class ServerMain {
@@ -44,13 +47,14 @@ public class ServerMain {
         for (Integer gameId : replicatedGames.keySet()) {
             if (!matching_games.containsKey(gameId)) {
                 matching_games.put(gameId, new ArrayList<>());
-                System.out.println("Restored Game " + gameId + " from replication state.");
+                System.out.println("Restored Game #" + gameId);
             }
         }
     }
 
     /**
-     * Attempts to match a player to an existing game, or reconnects them to a resumed session.
+     * Attempts to match a player to an existing game, or reconnects them to a
+     * resumed session.
      * Starts the game once the required number of players is met.
      *
      * @param key        the game ID to join
@@ -67,13 +71,14 @@ public class ServerMain {
 
         if (gameConnections.size() < maxplayers) {
             gameConnections.add(connection);
-            System.out.println("A player has been added to game " + key + "! Currently " + gameConnections.size() + "/" + maxplayers);
+            System.out.println("A player has been added to table #" + key + "! Currently " + gameConnections.size() + "/"
+                    + maxplayers + "...");
 
             if (gameConnections.size() == maxplayers) {
                 if (reconnect) {
                     ServerTable oldTable = ServerTable.getInstance(key);
                     oldTable.reconnectPlayers(gameConnections);
-                    Message msg = new Message("Rejoined table " + oldTable.getTableID() + " waiting for game start...");
+                    Message msg = new Message("Rejoined table #" + oldTable.getTableID() + " waiting for game start...");
                     connection.sendCommand(Command.Type.MESSAGE, msg);
                     gamepool.submit(oldTable);
                 } else {
@@ -93,7 +98,7 @@ public class ServerMain {
      */
     public static synchronized int addNewGame() {
         matching_games.put(id, new ArrayList<>());
-        System.out.println("A player has created Game " + id + "!");
+        System.out.println("A player has created Table #" + id + "...");
         return id++;
     }
 
@@ -117,7 +122,7 @@ public class ServerMain {
             Thread connectorThread = new Thread(connector);
             connectorThread.start();
         } else {
-            System.out.println("Running in backup mode; client listener not started.");
+            System.out.println("Running in backup mode; client listener not started...");
         }
     }
 }
