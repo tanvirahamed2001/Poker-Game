@@ -92,6 +92,15 @@ public class ServerMain {
     }
 
     /**
+     * Checks the size of the players list on the table
+     * @param id the table id
+     * @return size of the player list
+     */
+    public static synchronized int getTableSize(int id) {
+        return matching_games.get(id).size();
+    }
+
+    /**
      * Creates a new game entry with a unique game ID.
      *
      * @return the newly created game ID

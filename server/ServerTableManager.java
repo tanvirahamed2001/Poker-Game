@@ -74,10 +74,16 @@ public class ServerTableManager implements Runnable {
                     connection.sendCommand(Command.Type.MESSAGE, msg);
                     return 0;
                 } else if (gc.getChoice() == GameChoice.Choice.JOIN) {
-                    Message msg = new Message("Joined table " + gc.getId() + " waiting for game start...");
-                    connection.sendCommand(Command.Type.MESSAGE, msg);
-                    connection.sendCommand(Command.Type.TABLE_INFO, new TableInfo(gc.getId()));
-                    return gc.getId();
+                    if (ServerMain.getTableSize(gc.getId()) == ServerMain.maxplayers) {
+                        Message msg = new Message("Tried to join already full table, creating new emtpy table...");
+                        connection.sendCommand(Command.Type.MESSAGE, msg);
+                        return 0;
+                    } else {
+                        Message msg = new Message("Joined table " + gc.getId() + " waiting for game start...");
+                        connection.sendCommand(Command.Type.MESSAGE, msg);
+                        connection.sendCommand(Command.Type.TABLE_INFO, new TableInfo(gc.getId()));
+                        return gc.getId();
+                    }
                 }
             } else if (response.getType() == Command.Type.RECONNECT) {
                 int id = (int) response.getPayload();
