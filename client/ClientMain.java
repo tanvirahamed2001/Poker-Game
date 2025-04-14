@@ -43,7 +43,7 @@ public class ClientMain {
             id = getIDFromServer();
             player = getPlayerInfo(scanner, id);
             sendCommand(Command.Type.PLAYER_INFO, player);
-            handleGameSelection(scanner, false);
+            handleGameSelection(scanner);
             Thread gameThread = new Thread(() -> playGame(scanner));
             gameThread.start();
             try {
@@ -175,10 +175,8 @@ public class ClientMain {
      * Handles receiving a GAME_LIST Command from the server
      * Proceeds to build a GAME_CHOICE Command and send to the server
      */
-    private static void handleGameSelection(Scanner scanner, boolean isRefunded) {
-        if (!isRefunded) {
-            sendCommand(Command.Type.INITIAL_CONN, null);
-        }
+    private static void handleGameSelection(Scanner scanner) {
+        sendCommand(Command.Type.INITIAL_CONN, null);
         printTerminalMessage("Waiting for available games...");
         Command serverResponse = readCommand();
         if (serverResponse.getType() == Command.Type.GAMES_LIST) {
@@ -249,7 +247,7 @@ public class ClientMain {
             case REFUND:
                 printTerminalMessage(Colors.RED + "A player left the table, you have been refunded. Join a new table..." + Colors.RESET);
                 player = (Player) response.getPayload();
-                handleGameSelection(scanner, true);
+                handleGameSelection(scanner);
         }
     }
 
@@ -297,7 +295,7 @@ public class ClientMain {
         if (table_info.getIn()) {
             sendCommand(Command.Type.RECONNECT, table_info.getTableID());
         } else {
-            handleGameSelection(new Scanner(System.in), false);
+            handleGameSelection(new Scanner(System.in));
         }
     }
 }
