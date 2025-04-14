@@ -301,11 +301,11 @@ public class ServerTable implements Runnable {
             sendPlayer(Command.Type.TURN_TOKEN, new Token(), currentplayer);
 
             // Read a command response from the connection
-            Command command = (Command) connections.get(currentplayer).readCommand();
+            Command response = (Command) connections.get(currentplayer).readCommand();
 
-            if (command.getType() == Command.Type.TURN_CHOICE) {
+            if (response.getType() == Command.Type.TURN_CHOICE) {
 
-                TurnChoice playerChoice = (TurnChoice) command.getPayload();
+                TurnChoice playerChoice = (TurnChoice) response.getPayload();
 
                 switch (playerChoice.getChoice()) {
 
@@ -389,10 +389,20 @@ public class ServerTable implements Runnable {
                         }
                         break;
                 }
+            } else if (response.getType() == Command.Type.DISCONNECT) {
+                handlePlayerDisconnect();
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Handles the case where a player "disconnects" from a table causing a game to close
+     */
+    private void handlePlayerDisconnect() {
+        connections.remove(currentplayer);
+        players.remove(currentplayer);
     }
 
     /**

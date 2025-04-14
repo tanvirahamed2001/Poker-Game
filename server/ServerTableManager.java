@@ -64,6 +64,10 @@ public class ServerTableManager implements Runnable {
                     connection.sendCommand(Command.Type.GAMES_LIST, new GameList(message));
                 }
                 response = (Command) connection.readCommand();
+                if (response.getType() == Command.Type.DISCONNECT) {
+                    connection.close();
+                    return -1;
+                }
                 GameChoice gc = (GameChoice) response.getPayload();
                 if (gc.getChoice() == GameChoice.Choice.NEW) {
                     Message msg = new Message("You have created a new table! Waiting for players...");
@@ -79,6 +83,9 @@ public class ServerTableManager implements Runnable {
                 int id = (int) response.getPayload();
                 recon = true;
                 return id;
+            } else if (response.getType() == Command.Type.DISCONNECT) {
+                connection.close();
+                return -1;
             }
         } catch (Exception e) {
             e.printStackTrace();

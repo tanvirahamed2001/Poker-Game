@@ -114,15 +114,14 @@ public class PlayerConnection {
     public Object readCommand() {
         try {
             Object obj = in.readObject();
-            if (obj == null) {
-                return null;
-            }
             Command cmd = (Command) obj;
             int senderTS = cmd.getLamportTS();
             ServerLamportClock.getInstance().receievedEvent(senderTS);
             return cmd;
-        } catch (Exception e) {
+        } catch (IOException e) {
             System.out.println("Error in server to client connection reading...");
+            return new Command(Command.Type.DISCONNECT, null);
+        } catch (ClassNotFoundException e2) {
             return null;
         }
     }
@@ -134,9 +133,11 @@ public class PlayerConnection {
      */
     public void close() {
         try {
-            socket.close();
-        } catch (Exception e) {
-            System.out.println("Error in server to client connection closing...");
+            if (in != null) in.close();
+            if (out != null) out.close();
+            if (socket != null && !socket.isClosed()) socket.close();
+        } catch (IOException e) {
+            System.out.println("Error in server to player connection closing...");
         }
     }
 

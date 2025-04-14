@@ -53,6 +53,11 @@ public class ServerConnector implements Runnable {
 
                                 // Wait for the client to send its Player object
                                 response = (Command) pc.readCommand();
+                                if (response.getType() == Command.Type.DISCONNECT) {
+                                    System.err.println("Error connecting player...");
+                                    pc.close();
+                                    return;
+                                }
                                 Player player = (Player) response.getPayload();
                                 pc.updatePlayer(player);
 
@@ -62,6 +67,10 @@ public class ServerConnector implements Runnable {
                             } else if (response.getType() == Command.Type.RECONNECT) {
                                 // Handle client reconnection and player restoration
                                 response = (Command) pc.readCommand();
+                                if (response.getType() == Command.Type.DISCONNECT) {
+                                    System.err.println("Error connecting player...");
+                                    return;
+                                }
                                 ServerLamportClock.getInstance().receievedEvent(response.getLamportTS());
 
                                 if (response.getType() == Command.Type.PLAYER_INFO) {
@@ -71,6 +80,9 @@ public class ServerConnector implements Runnable {
                                     // Resume game handling
                                     pool.submit(new ServerTableManager(pc));
                                 }
+                            } else if (response.getType() == Command.Type.DISCONNECT) {
+                                System.err.println("Error connecting player...");
+                                return;
                             }
                         } catch (Exception e) {
                             System.err.println("Error assigning player information...");
