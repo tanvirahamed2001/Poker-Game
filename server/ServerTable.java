@@ -22,7 +22,7 @@ public class ServerTable implements Runnable {
 
     private int currentbet, lastActive, currentplayer, pot, currentTurn, numPlayers, gameId;
     private boolean activePlayers[];
-    private boolean roundCompleted, activeCheck, inprogress;
+    private boolean roundCompleted, activeCheck, inprogress, tableActive;
     private ArrayList<PlayerConnection> connections;
     private ArrayList<Player> players;
     private ArrayList<Card> tablecards;
@@ -42,6 +42,7 @@ public class ServerTable implements Runnable {
         this.connections = connections;
         this.players = new ArrayList<>();
         this.inprogress = false;
+        this.tableActive = true;
         for (PlayerConnection pc : connections) {
             players.add(pc.getPlayer());
             try {
@@ -143,7 +144,7 @@ public class ServerTable implements Runnable {
         }
 
         // Main game loop for each street until showdown.
-        while (currentTurn <= 5) {
+        while (currentTurn <= 5 && tableActive) {
             replicateGameState();
             boolean bettingStart = true; // used to check if it's the first turn
             roundCompleted = false;
@@ -401,6 +402,7 @@ public class ServerTable implements Runnable {
      * Handles the case where a player "disconnects" from a table causing a game to close
      */
     private void handlePlayerDisconnect() {
+        tableActive = false;
         ServerMain.deleteTable(this.gameId);
         connections.remove(currentplayer);
         players.remove(currentplayer);
