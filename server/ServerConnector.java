@@ -22,6 +22,7 @@ public class ServerConnector implements Runnable {
 
     /** A counter for assigning unique client-server IDs */
     private static AtomicInteger nextId = new AtomicInteger(1);
+    private static ExecutorService pool = Executors.newCachedThreadPool(); // Thread pool for managing multiple clients
 
     /**
      * Starts the server on port 6834 and listens for client connections.
@@ -32,7 +33,6 @@ public class ServerConnector implements Runnable {
      */
     @Override
     public void run() {
-        ExecutorService pool = Executors.newCachedThreadPool(); // Thread pool for managing multiple clients
         try (ServerSocket connector = new ServerSocket(6834)) {
             System.out.println("Server is running and waiting for connections...");
             while (true) {
@@ -97,5 +97,9 @@ public class ServerConnector implements Runnable {
         } finally {
             pool.shutdown(); // Gracefully shuts down the thread pool when server stops
         }
+    }
+
+    public static void newManager(PlayerConnection conn){
+        pool.submit(new ServerTableManager(conn));
     }
 }

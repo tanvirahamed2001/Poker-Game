@@ -405,7 +405,6 @@ public class ServerTable implements Runnable {
         System.out.println("Disconnected player detected... refunding leftover players...");
         tableActive = false;
         ServerMain.deleteTable(this.gameId);
-        System.out.println(connections.size());
         connections.remove(currentplayer);
         players.remove(currentplayer);
         currentBets.remove(currentplayer);
@@ -416,8 +415,7 @@ public class ServerTable implements Runnable {
             remPlayer.deposit_funds(bets);
         }
         remainingPlayer.sendCommand(Command.Type.REFUND, remPlayer);
-        ServerTableManager newManager = new ServerTableManager(remainingPlayer);
-        new Thread(newManager).start();
+        ServerConnector.newManager(remainingPlayer);
     }
 
     /**
