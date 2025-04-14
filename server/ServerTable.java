@@ -167,6 +167,10 @@ public class ServerTable implements Runnable {
                 }
             } while (!roundCompleted && tableActive);
 
+            if(!tableActive) {
+                break;
+            }
+
             sendAllPlayers(Command.Type.MESSAGE, new Message("Betting round over. Moving to next turn...."));
             currentTurn++;
             clearBets();
