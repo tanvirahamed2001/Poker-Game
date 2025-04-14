@@ -407,7 +407,8 @@ public class ServerTable implements Runnable {
         connections.get(0).getPlayer().deposit_funds(currentBets.get(0));
         ServerMain.deleteTable(this.gameId);
         sendPlayer(Command.Type.REFUND, players.get(0), 0);
-        new Thread(new ServerTableManager(connections.get(0))).start();
+        ServerTableManager newManager = new ServerTableManager(connections.get(0));
+        new Thread(newManager).start();
     }
 
     /**
