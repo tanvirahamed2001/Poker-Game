@@ -165,7 +165,7 @@ public class ServerTable implements Runnable {
                 if (bettingStart) {// will skip over the first turn
                     bettingStart = false;
                 }
-            } while (!roundCompleted);
+            } while (!roundCompleted && tableActive);
 
             sendAllPlayers(Command.Type.MESSAGE, new Message("Betting round over. Moving to next turn...."));
             currentTurn++;
@@ -402,6 +402,7 @@ public class ServerTable implements Runnable {
      * Handles the case where a player "disconnects" from a table causing a game to close
      */
     private void handlePlayerDisconnect() {
+        System.out.println("Disconnected player detected... refunding leftover players...");
         tableActive = false;
         ServerMain.deleteTable(this.gameId);
         System.out.println(connections.size());
