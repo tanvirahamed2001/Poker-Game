@@ -401,15 +401,18 @@ public class ServerTable implements Runnable {
      * Handles the case where a player "disconnects" from a table causing a game to close
      */
     private void handlePlayerDisconnect() {
+        ServerMain.deleteTable(this.gameId);
         connections.remove(currentplayer);
         players.remove(currentplayer);
         currentBets.remove(currentplayer);
+        PlayerConnection remainingPlayer = connections.get(0);
+        Player remPlayer = players.get(0);
         if(currentBets.size() > 0) {
-            connections.get(0).getPlayer().deposit_funds(currentBets.get(0));
+            int bets = currentBets.get(0);
+            remPlayer.deposit_funds(bets);
         }
-        ServerMain.deleteTable(this.gameId);
-        sendPlayer(Command.Type.REFUND, players.get(0), 0);
-        ServerTableManager newManager = new ServerTableManager(connections.get(0));
+        remainingPlayer.sendCommand(Command.Type.REFUND, remPlayer);
+        ServerTableManager newManager = new ServerTableManager(remainingPlayer);
         new Thread(newManager).start();
     }
 
