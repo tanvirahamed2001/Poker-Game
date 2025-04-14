@@ -107,7 +107,7 @@ public class ClientMain {
         while (true) {
             printTerminalMessage("Enter initial deposit amount in dollars...");
             try {
-                depositAmount = Integer.parseInt(scanner.nextLine());
+                depositAmount = Math.abs(Integer.parseInt(scanner.nextLine()));
                 break;
             } catch (NumberFormatException e) {
                 printTerminalMessage(Colors.RED + "Wrong input type, please deposit again..." + Colors.RESET);
