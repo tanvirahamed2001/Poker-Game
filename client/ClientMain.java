@@ -248,6 +248,7 @@ public class ClientMain {
                 printTerminalMessage(Colors.RED + "A player left the table, you have been refunded. Join a new table..." + Colors.RESET);
                 player = (Player) response.getPayload();
                 handleGameSelection(scanner);
+                break;
         }
     }
 

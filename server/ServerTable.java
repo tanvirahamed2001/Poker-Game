@@ -404,6 +404,7 @@ public class ServerTable implements Runnable {
     private void handlePlayerDisconnect() {
         tableActive = false;
         ServerMain.deleteTable(this.gameId);
+        System.out.println(connections.size());
         connections.remove(currentplayer);
         players.remove(currentplayer);
         currentBets.remove(currentplayer);
