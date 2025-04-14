@@ -103,6 +103,14 @@ public class ServerMain {
     }
 
     /**
+     * Removes a table from the list of tables
+     * @param id
+     */
+    public static synchronized void deleteTable(int id) {
+        matching_games.remove(id);
+    }
+
+    /**
      * Primary servers start a ServerConnector to handle client connections,
      * while backups only listen for replication updates.
      *
