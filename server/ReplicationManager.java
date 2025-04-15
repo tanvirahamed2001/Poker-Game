@@ -61,10 +61,8 @@ public class ReplicationManager {
 
     /** Default backup endpoints */
     private final List<Endpoint> backupEndpoints = Arrays.asList(
-            new Endpoint("localhost", 6836),
-            new Endpoint("localhost", 6837),
-            new Endpoint("localhost", 6838),
-            new Endpoint("localhost", 6839));
+            new Endpoint("10.44.124.21", 6836),
+            new Endpoint("10.44.124.23", 6836));
 
     private final int DEFAULT_REPLICATION_PORT = 6836;
     private final int CLIENT_PORT = 6834;
@@ -304,7 +302,7 @@ public class ReplicationManager {
      * @throws IOException if a socket connection error occurs
      */
     private boolean sendElectionMessage(int targetId) throws IOException {
-        String targetHost = "localhost";
+        String targetHost = "10.44.124.21";
         int baseElectionPort = 7000;
         int targetPort = baseElectionPort + targetId;
         try (Socket socket = new Socket(targetHost, targetPort)) {
