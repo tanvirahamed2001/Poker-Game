@@ -302,23 +302,24 @@ public class ReplicationManager {
      * @throws IOException if a socket connection error occurs
      */
     private boolean sendElectionMessage(int targetId) throws IOException {
-        String targetHost = "10.44.124.21";
         int baseElectionPort = 7000;
         int targetPort = baseElectionPort + targetId;
-        try (Socket socket = new Socket(targetHost, targetPort)) {
-            socket.setSoTimeout(3000);
-            ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-            oos.flush();
-            ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+        for (Endpoint ep : backupEndpoints) {
+            try (Socket socket = new Socket(ep.host, targetPort)) {
+                socket.setSoTimeout(3000);
+                ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+                oos.flush();
+                ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
 
-            Command electionCmd = new Command(Command.Type.ELECTION, new Election(serverId, targetId));
-            oos.writeObject(electionCmd);
-            oos.flush();
+                Command electionCmd = new Command(Command.Type.ELECTION, new Election(serverId, targetId));
+                oos.writeObject(electionCmd);
+                oos.flush();
 
-            Command responseCmd = (Command) ois.readObject();
-            return responseCmd.getType() == Command.Type.ELECTION && (Boolean) responseCmd.getPayload();
-        } catch (IOException | ClassNotFoundException e) {
-            System.err.println("Error sending election message to server " + targetId + "...");
+                Command responseCmd = (Command) ois.readObject();
+                return responseCmd.getType() == Command.Type.ELECTION && (Boolean) responseCmd.getPayload();
+            } catch (IOException | ClassNotFoundException e) {
+                System.err.println("Error sending election message to server " + targetId + "...");
+            }
         }
         return false;
     }
@@ -342,7 +343,8 @@ public class ReplicationManager {
                             ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
                             // Space for object streams to init
                             Command electionCmd = (Command) ois.readObject();
-                            if (electionCmd.getType() == Command.Type.ELECTION && ((Election) electionCmd.getPayload()).get_target_id() == serverId) {
+                            if (electionCmd.getType() == Command.Type.ELECTION
+                                    && ((Election) electionCmd.getPayload()).get_target_id() == serverId) {
                                 Command response = new Command(Command.Type.ELECTION, Boolean.TRUE);
                                 oos.writeObject(response);
                                 oos.flush();
