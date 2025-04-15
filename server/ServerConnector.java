@@ -34,6 +34,7 @@ public class ServerConnector implements Runnable {
     @Override
     public void run() {
         try (ServerSocket connector = new ServerSocket(6834)) {
+            System.out.print(connector.getInetAddress());
             System.out.println("Server is running and waiting for connections...");
             while (true) {
                 try {
