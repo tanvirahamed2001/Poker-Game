@@ -20,7 +20,7 @@ import shared.Colors;
  */
 public class ClientMain {
     // Change SERVER_IPS when needed to do actual testing
-    private static final List<String> SERVER_IPS = Arrays.asList("10.59.178.223");
+    private static final List<String> SERVER_IPS = Arrays.asList("10.44.124.21", "10.44.124.22", "10.44.124.23");
     private static final int SERVER_PORT = 6834;
     private static ClientServerConnection serverConnection;
     private static Player player;

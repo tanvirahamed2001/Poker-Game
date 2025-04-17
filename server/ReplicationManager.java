@@ -61,6 +61,7 @@ public class ReplicationManager {
 
     /** Default backup endpoints */
     private final List<Endpoint> backupEndpoints = Arrays.asList(
+            new Endpoint("10.44.124.21", 6836),
             new Endpoint("10.44.124.22", 6836),
             new Endpoint("10.44.124.23", 6836));
 
